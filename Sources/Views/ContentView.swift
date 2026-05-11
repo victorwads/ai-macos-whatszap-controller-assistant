@@ -1,0 +1,239 @@
+import SwiftUI
+
+struct ContentView: View {
+    @EnvironmentObject private var appModel: AppModel
+    @State private var selectedConversationId: ConversationSummary.ID?
+
+    var body: some View {
+        NavigationSplitView {
+            List(selection: $selectedConversationId) {
+                Section("Bridge") {
+                    Label("WhatsApp", systemImage: appModel.whatsappRunning ? "checkmark.circle.fill" : "xmark.circle")
+                    Label("Accessibility", systemImage: appModel.accessibilityTrusted ? "checkmark.circle.fill" : "lock.trianglebadge.exclamationmark")
+                }
+
+                Section("Conversations") {
+                    ForEach(appModel.conversations) { conversation in
+                        Button {
+                            selectedConversationId = conversation.id
+                            Task {
+                                await appModel.openConversation(conversation)
+                            }
+                        } label: {
+                            ConversationRow(conversation: conversation)
+                        }
+                        .buttonStyle(.plain)
+                        .tag(conversation.id)
+                    }
+                }
+
+                Section("Runtime") {
+                    Text(appModel.runtimeDescription)
+                        .font(.caption)
+                        .textSelection(.enabled)
+                }
+            }
+            .navigationTitle("Assistant MCP")
+        } detail: {
+            VStack(spacing: 0) {
+                toolbar
+                Divider()
+                ChatDetailView(chatState: appModel.selectedChatState)
+                    .frame(maxHeight: .infinity)
+                Divider()
+                LogView(logs: appModel.logs)
+                    .frame(minHeight: 180, maxHeight: 260)
+            }
+        }
+    }
+
+    private var toolbar: some View {
+        HStack(spacing: 10) {
+            Button {
+                appModel.refreshStatus()
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+
+            Button {
+                appModel.requestAccessibilityPermission()
+            } label: {
+                Label("Permission", systemImage: "lock.open")
+            }
+
+            Button {
+                appModel.dumpWhatsAppSnapshot()
+            } label: {
+                Label("Dump WhatsApp", systemImage: "doc.text.magnifyingglass")
+            }
+
+            Button {
+                Task {
+                    await appModel.refreshConversations()
+                }
+            } label: {
+                Label("Refresh Chats", systemImage: "list.bullet.rectangle")
+            }
+
+            Button {
+                if appModel.isPolling {
+                    appModel.stopPolling()
+                } else {
+                    appModel.startPolling()
+                }
+            } label: {
+                Label(appModel.isPolling ? "Stop Polling" : "Start Polling", systemImage: appModel.isPolling ? "pause.circle" : "play.circle")
+            }
+
+            Spacer()
+
+            Text(appModel.lastRefreshDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+    }
+}
+
+private struct ConversationRow: View {
+    let conversation: ConversationSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Text(conversation.name)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                if conversation.isPinned {
+                    Image(systemName: "pin.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if conversation.unreadCount > 0 {
+                    Text("\(conversation.unreadCount)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(.green))
+                }
+
+                Spacer()
+
+                if let lastMessageAtText = conversation.lastMessageAtText {
+                    Text(lastMessageAtText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            HStack(spacing: 4) {
+                if conversation.lastMessageDirection == .outgoing {
+                    Image(systemName: statusIcon)
+                        .font(.caption2)
+                        .foregroundStyle(statusColor)
+                }
+
+                Text(conversation.isTyping ? "typing..." : conversation.lastMessagePreview ?? "No preview")
+                    .font(.caption)
+                    .foregroundStyle(conversation.isTyping ? .green : .secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var statusIcon: String {
+        switch conversation.lastMessageStatus {
+        case .read: "checkmark.circle.fill"
+        case .delivered: "checkmark.circle"
+        case .sent: "checkmark"
+        case .unknown: "arrowshape.turn.up.right"
+        }
+    }
+
+    private var statusColor: Color {
+        conversation.lastMessageStatus == .read ? .blue : .secondary
+    }
+}
+
+private struct ChatDetailView: View {
+    let chatState: ChatState?
+
+    var body: some View {
+        Group {
+            if let chatState {
+                VStack(alignment: .leading, spacing: 0) {
+                    header(for: chatState)
+                    Divider()
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 10) {
+                            ForEach(chatState.messages) { message in
+                                MessageRow(message: message)
+                            }
+                        }
+                        .padding(14)
+                    }
+                }
+            } else {
+                ContentUnavailableView(
+                    "No conversation loaded",
+                    systemImage: "message",
+                    description: Text("Refresh chats or start polling to parse WhatsApp.")
+                )
+            }
+        }
+    }
+
+    private func header(for chatState: ChatState) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(chatState.chat.name)
+                    .font(.title3.weight(.semibold))
+
+                Text("\(chatState.messages.count) recent messages")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Label(chatState.canSendText ? "Can send" : "Cannot send", systemImage: chatState.canSendText ? "paperplane" : "paperplane.circle")
+                .font(.caption)
+                .foregroundStyle(chatState.canSendText ? .green : .secondary)
+        }
+        .padding(14)
+    }
+}
+
+private struct MessageRow: View {
+    let message: Message
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(message.direction.rawValue)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Text(message.kind.rawValue)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Text(message.status.rawValue)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(message.text ?? message.rawAccessibilityText)
+                .font(.body)
+                .textSelection(.enabled)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
