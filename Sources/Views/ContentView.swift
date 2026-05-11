@@ -200,11 +200,15 @@ private struct SettingsView: View {
                     HStack {
                         Text("Port")
                         Spacer()
-                        Stepper(value: $appModel.mcpServerPort, in: 1024...65535) {
-                            Text("\(appModel.mcpServerPort)")
-                                .monospacedDigit()
-                        }
-                        .frame(width: 160, alignment: .trailing)
+                        TextField(
+                            "8080",
+                            text: Binding(
+                                get: { appModel.mcpServerPortText },
+                                set: { appModel.updateMCPServerPortText($0) }
+                            )
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 120)
                     }
 
                     Text("Address: \(appModel.mcpServerAddress)")

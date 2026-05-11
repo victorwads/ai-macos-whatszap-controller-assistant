@@ -19,6 +19,7 @@ final class AppModel: ObservableObject {
     @Published var pollingIntervalSeconds = 3
     @Published var mcpServerHost = "localhost"
     @Published var mcpServerPort = 8080
+    @Published var mcpServerPortText = "8080"
     @Published private(set) var mcpServerRunning = false
     @Published private(set) var mcpServerStatusDescription = "Stopped"
     @Published private(set) var blockedConversationNames: [String] = []
@@ -165,17 +166,22 @@ final class AppModel: ObservableObject {
 
     var mcpConfigurationSnippet: String {
         """
-        {
-          "mcpServers": {
-            "assistant-whatsapp": {
-              "transport": {
-                "type": "http",
-                "url": "http://\(mcpServerAddress)/mcp"
-              }
-            }
-          }
-        }
+        [mcp_servers.assistant_whatsapp]
+        enabled = true
+        url = "http://localhost:\(mcpServerPort)/mcp"
         """
+    }
+
+    func updateMCPServerPortText(_ value: String) {
+        let digitsOnly = String(value.filter(\.isNumber))
+        let trimmedDigits = String(digitsOnly.prefix(5))
+        mcpServerPortText = trimmedDigits
+
+        guard let port = Int(trimmedDigits), (1024...65535).contains(port) else {
+            return
+        }
+
+        mcpServerPort = port
     }
 
     func startMCPServer() async {
