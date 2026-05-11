@@ -468,6 +468,19 @@ final class AppModel: ObservableObject {
 
     private func handleMCPRequest(_ request: MCPHTTPRequest) async -> Result<JSONValue, Error> {
         switch request.method {
+        case "initialize":
+            return .success(.object([
+                "protocolVersion": .string("2024-11-05"),
+                "capabilities": .object([
+                    "tools": .object([:])
+                ]),
+                "serverInfo": .object([
+                    "name": .string("assistant-whatsapp"),
+                    "version": .string("0.1.0")
+                ])
+            ]))
+        case "ping", "notifications/initialized":
+            return .success(.object([:]))
         case "tools/list":
             return .success(.object(["tools": .array(toolDefinitions.map(\.jsonValue))]))
         case "tools/call":

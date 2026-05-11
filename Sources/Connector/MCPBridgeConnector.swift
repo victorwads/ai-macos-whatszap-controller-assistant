@@ -79,10 +79,13 @@ enum JSONValue: Codable, Equatable {
         switch value {
         case let value as String:
             return .string(value)
+        case let value as NSNumber:
+            if CFGetTypeID(value) == CFBooleanGetTypeID() {
+                return .bool(value.boolValue)
+            }
+            return .number(value.doubleValue)
         case let value as Bool:
             return .bool(value)
-        case let value as NSNumber:
-            return .number(value.doubleValue)
         case let value as [String: Any]:
             let object = value.compactMapValues { JSONValue.from(any: $0) }
             return .object(object)
@@ -119,6 +122,12 @@ struct MCPHTTPRequest {
     let id: JSONValue?
     let method: String
     let params: [String: JSONValue]
+}
+
+private struct IncomingHTTPRequest {
+    let method: String
+    let path: String
+    let body: Data
 }
 
 enum MCPBridgeState: Equatable {
@@ -273,9 +282,9 @@ final class MCPBridgeConnector: MCPBridgeConnecting {
                 nextBuffer.append(content)
             }
 
-            if let requestData = self.completeHTTPRequestBody(from: nextBuffer) {
+            if let request = self.parseHTTPRequest(from: nextBuffer) {
                 Task {
-                    let response = await self.process(body: requestData)
+                    let response = await self.process(request: request)
                     self.respond(on: connection, payload: response)
                 }
                 return
@@ -291,9 +300,23 @@ final class MCPBridgeConnector: MCPBridgeConnecting {
         }
     }
 
-    private func process(body: Data) async -> Data {
+    private func process(request: IncomingHTTPRequest) async -> Data {
+        switch request.method {
+        case "GET":
+            guard request.path == "/mcp" else {
+                return httpResponse(status: 404, body: errorPayload(message: "Route not found."))
+            }
+            return httpResponse(status: 200, body: healthPayload())
+        case "POST":
+            guard request.path == "/mcp" else {
+                return httpResponse(status: 404, body: errorPayload(message: "Route not found."))
+            }
+        default:
+            return httpResponse(status: 405, body: errorPayload(message: "Use POST /mcp for JSON-RPC requests."))
+        }
+
         do {
-            let request = try decodeRequest(from: body)
+            let request = try decodeRequest(from: request.body)
             guard let handler else {
                 return httpResponse(status: 503, body: errorPayload(message: "MCP handler not configured."))
             }
@@ -319,39 +342,17 @@ final class MCPBridgeConnector: MCPBridgeConnecting {
         }
 
         let id = payloadObject["id"].flatMap(JSONValue.from(any:))
-        let paramsObject = payloadObject["params"] as? [String: Any] ?? [:]
-
-        switch method {
-        case "tools/list":
-            return MCPHTTPRequest(id: id, method: method, params: [:])
-        case "tools/call":
-            guard
-                let name = paramsObject["name"] as? String
-            else {
-                throw MCPBridgeError.invalidRequest
-            }
-
-            let arguments: [String: JSONValue]
-            if let argumentsObject = paramsObject["arguments"] as? [String: Any] {
-                arguments = argumentsObject.compactMapValues { JSONValue.from(any: $0) }
-            } else {
-                arguments = [:]
-            }
-
-            return MCPHTTPRequest(
-                id: id,
-                method: method,
-                params: [
-                    "name": .string(name),
-                    "arguments": .object(arguments)
-                ]
-            )
-        default:
-            throw MCPBridgeError.unsupportedMethod(method)
+        let params: [String: JSONValue]
+        if let paramsObject = payloadObject["params"] as? [String: Any] {
+            params = paramsObject.compactMapValues { JSONValue.from(any: $0) }
+        } else {
+            params = [:]
         }
+
+        return MCPHTTPRequest(id: id, method: method, params: params)
     }
 
-    private func completeHTTPRequestBody(from data: Data) -> Data? {
+    private func parseHTTPRequest(from data: Data) -> IncomingHTTPRequest? {
         let separator = Data("\r\n\r\n".utf8)
         guard
             let headerRange = data.range(of: separator),
@@ -360,9 +361,23 @@ final class MCPBridgeConnector: MCPBridgeConnecting {
             return nil
         }
 
+        let headerLines = headers.components(separatedBy: "\r\n")
+        guard
+            let requestLine = headerLines.first,
+            !requestLine.isEmpty
+        else {
+            return nil
+        }
+
+        let requestParts = requestLine.split(separator: " ", omittingEmptySubsequences: true)
+        guard requestParts.count >= 2 else {
+            return nil
+        }
+
+        let method = String(requestParts[0]).uppercased()
+        let path = String(requestParts[1])
         let bodyStart = headerRange.upperBound
-        let contentLength = headers
-            .components(separatedBy: "\r\n")
+        let contentLength = headerLines
             .first(where: { $0.lowercased().hasPrefix("content-length:") })
             .flatMap { Int($0.split(separator: ":", maxSplits: 1).last?.trimmingCharacters(in: .whitespaces) ?? "") }
             ?? 0
@@ -371,7 +386,8 @@ final class MCPBridgeConnector: MCPBridgeConnecting {
             return nil
         }
 
-        return data.subdata(in: bodyStart..<(bodyStart + contentLength))
+        let body = data.subdata(in: bodyStart..<(bodyStart + contentLength))
+        return IncomingHTTPRequest(method: method, path: path, body: body)
     }
 
     private func respond(on connection: NWConnection, payload: Data) {
@@ -402,11 +418,31 @@ final class MCPBridgeConnector: MCPBridgeConnecting {
         return (try? encoder.encode(payload)) ?? Data()
     }
 
+    private func healthPayload() -> Data {
+        let payload: JSONValue = .object([
+            "ok": .bool(true),
+            "service": .string("AssistantMCPServer MCP bridge"),
+            "transport": .string("HTTP JSON-RPC"),
+            "endpoint": .string("http://\(host):\(boundPort)/mcp"),
+            "message": .string("Use POST /mcp with JSON-RPC. Browser GET is only a health check."),
+            "supportedMethods": .array([
+                .string("initialize"),
+                .string("ping"),
+                .string("tools/list"),
+                .string("tools/call")
+            ])
+        ])
+
+        return (try? encoder.encode(payload)) ?? Data()
+    }
+
     private func httpResponse(status: Int, body: Data) -> Data {
         let statusText: String
         switch status {
         case 200: statusText = "OK"
         case 400: statusText = "Bad Request"
+        case 404: statusText = "Not Found"
+        case 405: statusText = "Method Not Allowed"
         case 503: statusText = "Service Unavailable"
         default: statusText = "Internal Server Error"
         }
