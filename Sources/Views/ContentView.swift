@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var appModel: AppModel
-    @State private var selectedConversationId: ConversationSummary.ID?
 
     var body: some View {
         NavigationSplitView {
@@ -58,19 +57,16 @@ struct ContentView: View {
     }
 
     private func open(_ conversation: ConversationSummary) {
-        guard appModel.selectedChatState?.chat.id != conversation.id else {
+        guard appModel.selectedConversationId != conversation.id else {
             return
         }
 
-        selectedConversationId = conversation.id
-        Task {
-            await appModel.openConversation(conversation)
-        }
+        appModel.openConversation(conversation)
     }
 
     @ViewBuilder
     private func selectionBackground(for conversation: ConversationSummary) -> some View {
-        if selectedConversationId == conversation.id {
+        if appModel.selectedConversationId == conversation.id {
             Color.accentColor.opacity(0.22)
         } else {
             Color.clear

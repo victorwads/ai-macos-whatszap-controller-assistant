@@ -8,6 +8,15 @@ settings:
     PRODUCT_BUNDLE_IDENTIFIER: dev.wads.AssistantMCPServer
     CURRENT_PROJECT_VERSION: 1
     MARKETING_VERSION: 0.1.0
+schemes:
+  AssistantMCPServer:
+    build:
+      targets:
+        AssistantMCPServer: all
+    run:
+      config: Debug
+    archive:
+      config: Release
 targets:
   AssistantMCPServer:
     type: application

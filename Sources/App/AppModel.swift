@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 
 @MainActor
@@ -8,23 +9,27 @@ final class AppModel: ObservableObject {
     @Published private(set) var whatsappRunning = false
     @Published private(set) var runtimeDescription = ""
     @Published private(set) var conversations: [ConversationSummary] = []
+    @Published private(set) var selectedConversationId: String?
     @Published private(set) var selectedChatState: ChatState?
     @Published private(set) var isPolling = false
     @Published private(set) var lastRefreshDescription = "Never refreshed"
     @Published private(set) var waitingForAccessibilityRelaunch = false
     @Published var messageDraft = ""
     @Published private(set) var isSendingMessage = false
+    @Published var pollingIntervalSeconds = 3
 
     private let accessibility = AccessibilityService()
     private let parser = WhatsAppAppParser()
     private let interactor = WhatsAppInteractor()
+    private let memoryStore = WhatsAppMemoryStore.shared
     private var pollingTask: Task<Void, Never>?
     private var permissionMonitorTask: Task<Void, Never>?
-    private var chatStatesById: [String: ChatState] = [:]
     private var listSignaturesById: [String: String] = [:]
     private let debugDirectory = URL(fileURLWithPath: "/tmp/AssistantMCPServer", isDirectory: true)
+    private var cancellables: Set<AnyCancellable> = []
 
     init() {
+        bindMemoryStore()
         refreshStatus()
     }
 
@@ -85,7 +90,7 @@ final class AppModel: ObservableObject {
             let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
             writeDebugArtifacts(snapshot: snapshot, screenState: screenState, prefix: "refresh")
-            conversations = screenState.conversations
+            memoryStore.replaceConversations(screenState.conversations)
             lastRefreshDescription = "List refreshed at \(Date().formatted(date: .omitted, time: .standard))"
             appendLog("Parsed \(screenState.conversations.count) conversations from WhatsApp.")
             appendLog("Wrote parser debug report to \(debugDirectory.path).")
@@ -95,12 +100,8 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func openConversation(_ conversation: ConversationSummary) async {
-        guard prepareForWhatsAppInspection() else {
-            return
-        }
-
-        await loadMessages(for: conversation, reason: "manual selection", updateSelectedChat: true)
+    func openConversation(_ conversation: ConversationSummary) {
+        memoryStore.selectConversation(id: conversation.id)
     }
 
     func startPolling() {
@@ -115,7 +116,7 @@ final class AppModel: ObservableObject {
             guard let self else { return }
             while !Task.isCancelled {
                 await self.refreshConversations()
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: .seconds(self.pollingIntervalSeconds))
             }
         }
     }
@@ -147,6 +148,9 @@ final class AppModel: ObservableObject {
         defer { isSendingMessage = false }
 
         do {
+            try interactor.selectConversation(selectedChatState.chat, using: accessibility)
+            try await Task.sleep(for: .milliseconds(650))
+
             let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             try interactor.sendMessage(trimmedMessage, in: snapshot, using: accessibility)
             messageDraft = ""
@@ -157,6 +161,7 @@ final class AppModel: ObservableObject {
             let refreshedSnapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             let refreshedState = parser.parse(snapshot: refreshedSnapshot, messageLimit: 10)
             writeDebugArtifacts(snapshot: refreshedSnapshot, screenState: refreshedState, prefix: "send-\(selectedChatState.chat.id)")
+            memoryStore.replaceConversations(refreshedState.conversations)
             updateSelectedChatState(from: refreshedState, preferredConversation: selectedChatState.chat)
         } catch {
             appendLog("Failed to send message: \(error.localizedDescription)", level: .error)
@@ -209,7 +214,7 @@ final class AppModel: ObservableObject {
     private func refreshChangedChats(from conversations: [ConversationSummary]) async {
         for conversation in conversations {
             let previousSignature = listSignaturesById[conversation.id]
-            let needsMessages = chatStatesById[conversation.id] == nil || previousSignature != conversation.listSignature
+            let needsMessages = memoryStore.chatState(for: conversation.id) == nil || previousSignature != conversation.listSignature
             listSignaturesById[conversation.id] = conversation.listSignature
 
             guard needsMessages else {
@@ -233,10 +238,7 @@ final class AppModel: ObservableObject {
             let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
             writeDebugArtifacts(snapshot: snapshot, screenState: screenState, prefix: "chat-\(conversation.id)")
             let chatState = makeChatState(from: screenState, preferredConversation: conversation)
-            chatStatesById[conversation.id] = chatState
-            if updateSelectedChat {
-                selectedChatState = chatState
-            }
+            memoryStore.upsertChatState(chatState)
             appendLog("Loaded \(screenState.messages.count) messages for \(conversation.name) (\(reason)).")
         } catch {
             appendLog("Failed to load messages for \(conversation.name): \(error.localizedDescription)", level: .error)
@@ -245,8 +247,7 @@ final class AppModel: ObservableObject {
 
     private func updateSelectedChatState(from screenState: WhatsAppScreenState, preferredConversation: ConversationSummary) {
         let chatState = makeChatState(from: screenState, preferredConversation: preferredConversation)
-        chatStatesById[preferredConversation.id] = chatState
-        selectedChatState = chatState
+        memoryStore.upsertChatState(chatState)
     }
 
     private func makeChatState(from screenState: WhatsAppScreenState, preferredConversation: ConversationSummary) -> ChatState {
@@ -280,6 +281,26 @@ final class AppModel: ObservableObject {
 
     private func appendLog(_ message: String, level: LogLevel = .info) {
         logs.append(LogEntry(level: level, message: message))
+    }
+
+    private func bindMemoryStore() {
+        memoryStore.$conversations
+            .sink { [weak self] in
+                self?.conversations = $0
+            }
+            .store(in: &cancellables)
+
+        memoryStore.$selectedChatState
+            .sink { [weak self] in
+                self?.selectedChatState = $0
+            }
+            .store(in: &cancellables)
+
+        memoryStore.$selectedConversationId
+            .sink { [weak self] in
+                self?.selectedConversationId = $0
+            }
+            .store(in: &cancellables)
     }
 
     private func writeDebugArtifacts(snapshot: WhatsAppSnapshot, screenState: WhatsAppScreenState, prefix: String) {
