@@ -13,22 +13,17 @@ extension AppModel {
             return
         }
 
-        guard prepareForWhatsAppInspection() else {
-            return
-        }
-
         isSendingMessage = true
         defer { isSendingMessage = false }
 
-        do {
-            try await sendMessage(trimmedMessage, to: selectedChatState.chat.id)
-            messageDraft = ""
-        } catch {
-            appendLog("Failed to send message: \(error.localizedDescription)", level: .error)
-        }
+        await enqueueSendMessage(trimmedMessage, to: selectedChatState.chat.id, clearDraftOnSuccess: true)
     }
 
     func sendMessage(_ text: String, to conversationId: String) async throws {
+        guard prepareForWhatsAppInspection() else {
+            throw MCPServerError.invalidRequest
+        }
+
         let trimmedMessage = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else {
             throw MCPServerError.invalidParameter("text")
@@ -42,14 +37,7 @@ extension AppModel {
             throw MCPServerError.invalidRequest
         }
 
-        guard prepareForWhatsAppInspection() else {
-            throw MCPServerError.invalidRequest
-        }
-
-        try interactor.selectConversation(conversation, using: accessibility)
-        try await Task.sleep(for: .milliseconds(650))
-
-        let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
+        let snapshot = try await openConversationAndCapture(conversation)
         try interactor.sendMessage(trimmedMessage, in: snapshot, using: accessibility)
         appendLog("Sent message to \(conversation.name).")
 
@@ -60,5 +48,37 @@ extension AppModel {
         writeDebugArtifacts(snapshot: refreshedSnapshot, screenState: refreshedState, prefix: "send-\(conversation.id)")
         memoryStore.replaceConversations(refreshedState.conversations)
         updateSelectedChatState(from: refreshedState, preferredConversation: conversation)
+    }
+
+    private func enqueueSendMessage(_ text: String, to conversationId: String, clearDraftOnSuccess: Bool) async {
+        // Ensure any pending background refresh does not race with a send.
+        await accessibilityScheduler.cancelAll { $0 == .background }
+
+        let resumePollingAfterSend = isPolling
+        if resumePollingAfterSend {
+            stopPolling()
+        }
+
+        await accessibilityScheduler.enqueue(priority: .critical) { [weak self] in
+            guard let self else { return }
+            defer {
+                if resumePollingAfterSend {
+                    Task { @MainActor in
+                        self.startPolling()
+                    }
+                }
+            }
+
+            do {
+                try await self.sendMessage(text, to: conversationId)
+                if clearDraftOnSuccess {
+                    await MainActor.run { self.messageDraft = "" }
+                }
+            } catch {
+                await MainActor.run {
+                    self.appendLog("Failed to send message: \(error.localizedDescription)", level: .error)
+                }
+            }
+        }
     }
 }

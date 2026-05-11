@@ -12,9 +12,11 @@ struct WhatsAppCurrentConversationParser {
     private let accessibilityMap = WhatsAppAccessibilityMap()
 
     func parse(from accessibilityObject: AccessibilityObject, selectedChatName: String?, limit: Int) -> WhatsAppCurrentConversationState {
-        WhatsAppCurrentConversationState(
-            selectedChatName: selectedChatName,
-            messages: parseMessages(from: accessibilityObject.root, selectedChatName: selectedChatName, limit: limit),
+        let currentChatName = accessibilityMap.currentChatName(in: accessibilityObject.root) ?? selectedChatName
+
+        return WhatsAppCurrentConversationState(
+            selectedChatName: currentChatName,
+            messages: parseMessages(from: accessibilityObject.root, selectedChatName: currentChatName, limit: limit),
             composeFocused: accessibilityMap.composeField(in: accessibilityObject.root) != nil,
             canSendText: accessibilityObject.containsText(matching: ["send", "enviar"]),
             sendButtonPath: accessibilityMap.sendButton(in: accessibilityObject.root)?.accessibilityPath
@@ -22,7 +24,12 @@ struct WhatsAppCurrentConversationParser {
     }
 
     private func parseMessages(from root: RawAXNode, selectedChatName: String?, limit: Int) -> [Message] {
-        let candidates = accessibilityMap.messageList(in: root)?.children.filter(isMessageRow(_:)) ?? []
+        let candidates = (accessibilityMap.messageList(in: root)?.children.filter(isMessageRow(_:)) ?? [])
+            // WhatsApp's AX children order is not guaranteed to be chronological.
+            // Use screen position to approximate order so "recent messages" works.
+            .sorted { left, right in
+                (left.frame?.minY ?? 0) < (right.frame?.minY ?? 0)
+            }
 
         var seen = Set<String>()
         let messages = candidates.compactMap { node -> Message? in

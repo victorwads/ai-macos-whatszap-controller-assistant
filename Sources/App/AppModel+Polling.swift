@@ -32,7 +32,7 @@ extension AppModel {
         pollingTask = Task { [weak self] in
             guard let self else { return }
             while !Task.isCancelled {
-                await self.refreshConversations()
+                await self.schedulePollingRefresh()
                 try? await Task.sleep(for: .seconds(self.pollingIntervalSeconds))
             }
         }
@@ -43,6 +43,13 @@ extension AppModel {
         pollingTask = nil
         isPolling = false
         appendLog("Stopped WhatsApp polling.")
+    }
+
+    private func schedulePollingRefresh() async {
+        await accessibilityScheduler.enqueue(priority: .background) { [weak self] in
+            guard let self else { return }
+            await self.refreshConversations()
+        }
     }
 
     func updateSelectedChatState(from screenState: WhatsAppScreenState, preferredConversation: ConversationSummary) {
@@ -81,10 +88,7 @@ extension AppModel {
 
     private func loadMessages(for conversation: ConversationSummary, reason: String, updateSelectedChat: Bool) async {
         do {
-            try interactor.selectConversation(conversation, using: accessibility)
-            try await Task.sleep(for: .milliseconds(650))
-
-            let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
+            let snapshot = try await openConversationAndCapture(conversation)
             let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
             writeDebugArtifacts(snapshot: snapshot, screenState: screenState, prefix: "chat-\(conversation.id)")
             let chatState = makeChatState(from: screenState, preferredConversation: conversation)
@@ -93,5 +97,61 @@ extension AppModel {
         } catch {
             appendLog("Failed to load messages for \(conversation.name): \(error.localizedDescription)", level: .error)
         }
+    }
+
+    func openConversationAndCapture(_ targetConversation: ConversationSummary) async throws -> WhatsAppSnapshot {
+        for attempt in 1...3 {
+            let baselineSnapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
+            let baselineState = parser.parse(snapshot: baselineSnapshot, messageLimit: 10)
+
+            if baselineState.conversations.isEmpty, try dismissModalSheetIfPresent(in: baselineSnapshot) {
+                try await Task.sleep(for: .milliseconds(300))
+                continue
+            }
+
+            if baselineState.selectedChatName == targetConversation.name {
+                return baselineSnapshot
+            }
+
+            let liveConversation = baselineState.conversations.first {
+                $0.id == targetConversation.id || $0.name == targetConversation.name
+            } ?? targetConversation
+
+            try accessibility.activateWhatsApp()
+            try interactor.selectConversation(liveConversation, using: accessibility)
+            try await Task.sleep(for: .milliseconds(500))
+
+            let updatedSnapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
+            let updatedState = parser.parse(snapshot: updatedSnapshot, messageLimit: 10)
+            if updatedState.selectedChatName == targetConversation.name {
+                return updatedSnapshot
+            }
+
+            appendLog("Conversation selection retry \(attempt) failed for \(targetConversation.name); current chat is \(updatedState.selectedChatName ?? "unknown").", level: .warning)
+        }
+
+        throw AccessibilityError.unexpectedChatSelection(targetConversation.name)
+    }
+
+    private func dismissModalSheetIfPresent(in snapshot: WhatsAppSnapshot) throws -> Bool {
+        guard let doneButton = snapshot.rootNode.firstDescendant(where: { node in
+            guard node.role == "AXButton" else {
+                return false
+            }
+
+            let text = [node.title, node.nodeDescription, node.help]
+                .compactMap { $0?.normalizedAXText.lowercased() }
+                .joined(separator: " ")
+            return text.contains("done")
+        }) else {
+            return false
+        }
+
+        try accessibility.activateWhatsApp()
+        try? accessibility.pressNode(at: doneButton.accessibilityPath)
+        try? accessibility.focusNode(at: doneButton.accessibilityPath)
+        try accessibility.pressEnterKey()
+        appendLog("Dismissed a WhatsApp modal sheet before selecting a conversation.", level: .warning)
+        return true
     }
 }

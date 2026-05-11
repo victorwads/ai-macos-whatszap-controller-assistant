@@ -25,6 +25,7 @@ final class AppModel: ObservableObject {
     @Published var blockedConversationNames: [String] = []
 
     let accessibility = AccessibilityService()
+    let accessibilityScheduler = AccessibilityActionScheduler()
     let parser = WhatsAppAppParser()
     let interactor = WhatsAppInteractor()
     let memoryStore = WhatsAppMemoryStore.shared
