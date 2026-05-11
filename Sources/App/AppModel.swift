@@ -43,6 +43,7 @@ final class AppModel: ObservableObject {
         refreshStatus()
         Task {
             await startMCPServer()
+            startPolling()
         }
     }
 
