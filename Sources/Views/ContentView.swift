@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var appModel: AppModel
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationSplitView {
@@ -90,34 +91,9 @@ struct ContentView: View {
             }
 
             Button {
-                appModel.requestAccessibilityPermission()
+                showingSettings = true
             } label: {
-                Label(appModel.waitingForAccessibilityRelaunch ? "Waiting Permission" : "Permission", systemImage: appModel.waitingForAccessibilityRelaunch ? "hourglass" : "lock.open")
-            }
-            .disabled(appModel.waitingForAccessibilityRelaunch)
-
-            Button {
-                appModel.dumpWhatsAppSnapshot()
-            } label: {
-                Label("Dump WhatsApp", systemImage: "doc.text.magnifyingglass")
-            }
-
-            Button {
-                Task {
-                    await appModel.refreshConversations()
-                }
-            } label: {
-                Label("Refresh Chats", systemImage: "list.bullet.rectangle")
-            }
-
-            Button {
-                if appModel.isPolling {
-                    appModel.stopPolling()
-                } else {
-                    appModel.startPolling()
-                }
-            } label: {
-                Label(appModel.isPolling ? "Stop Polling" : "Start Polling", systemImage: appModel.isPolling ? "pause.circle" : "play.circle")
+                Label("Settings", systemImage: "gearshape")
             }
 
             Spacer()
@@ -127,6 +103,132 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(12)
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(appModel: appModel)
+        }
+    }
+}
+
+private struct SettingsView: View {
+    @ObservedObject var appModel: AppModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("Settings")
+                    .font(.title2.weight(.semibold))
+
+                Spacer()
+
+                Button("Done") {
+                    dismiss()
+                }
+            }
+
+            GroupBox("Polling") {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Interval")
+                        Spacer()
+                        Stepper(value: $appModel.pollingIntervalSeconds, in: 1...30) {
+                            Text("\(appModel.pollingIntervalSeconds)s")
+                                .monospacedDigit()
+                        }
+                        .frame(width: 140, alignment: .trailing)
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            Task {
+                                await appModel.refreshConversations()
+                            }
+                        } label: {
+                            Label("Refresh Chats", systemImage: "list.bullet.rectangle")
+                        }
+
+                        Button {
+                            if appModel.isPolling {
+                                appModel.stopPolling()
+                            } else {
+                                appModel.startPolling()
+                            }
+                        } label: {
+                            Label(appModel.isPolling ? "Stop Polling" : "Start Polling", systemImage: appModel.isPolling ? "pause.circle" : "play.circle")
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            GroupBox("Accessibility") {
+                HStack(spacing: 10) {
+                    Button {
+                        appModel.requestAccessibilityPermission()
+                    } label: {
+                        Label(appModel.waitingForAccessibilityRelaunch ? "Waiting Permission" : "Permission", systemImage: appModel.waitingForAccessibilityRelaunch ? "hourglass" : "lock.open")
+                    }
+                    .disabled(appModel.waitingForAccessibilityRelaunch)
+
+                    Button {
+                        appModel.dumpWhatsAppSnapshot()
+                    } label: {
+                        Label("Dump WhatsApp", systemImage: "doc.text.magnifyingglass")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            GroupBox("MCP Server") {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Host")
+                        Spacer()
+                        TextField("Host", text: $appModel.mcpServerHost)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 180)
+                    }
+
+                    HStack {
+                        Text("Port")
+                        Spacer()
+                        Stepper(value: $appModel.mcpServerPort, in: 1024...65535) {
+                            Text("\(appModel.mcpServerPort)")
+                                .monospacedDigit()
+                        }
+                        .frame(width: 160, alignment: .trailing)
+                    }
+
+                    Text("Address: \(appModel.mcpServerAddress)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text("Client snippet")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    TextEditor(text: .constant(appModel.mcpConfigurationSnippet))
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(minHeight: 150)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.secondary.opacity(0.2))
+                        )
+
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(appModel.mcpConfigurationSnippet, forType: .string)
+                    } label: {
+                        Label("Copy MCP Snippet", systemImage: "doc.on.doc")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Spacer()
+        }
+        .padding(20)
+        .frame(width: 620, height: 520)
     }
 }
 

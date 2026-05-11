@@ -17,6 +17,8 @@ final class AppModel: ObservableObject {
     @Published var messageDraft = ""
     @Published private(set) var isSendingMessage = false
     @Published var pollingIntervalSeconds = 3
+    @Published var mcpServerHost = "localhost"
+    @Published var mcpServerPort = 8080
 
     private let accessibility = AccessibilityService()
     private let parser = WhatsAppAppParser()
@@ -126,6 +128,25 @@ final class AppModel: ObservableObject {
         pollingTask = nil
         isPolling = false
         appendLog("Stopped WhatsApp polling.")
+    }
+
+    var mcpServerAddress: String {
+        "\(mcpServerHost):\(mcpServerPort)"
+    }
+
+    var mcpConfigurationSnippet: String {
+        """
+        {
+          "mcpServers": {
+            "assistant-whatsapp": {
+              "transport": {
+                "type": "http",
+                "url": "http://\(mcpServerAddress)/mcp"
+              }
+            }
+          }
+        }
+        """
     }
 
     func sendMessageToSelectedChat() async {
