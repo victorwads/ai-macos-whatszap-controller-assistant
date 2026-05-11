@@ -21,6 +21,7 @@ final class AppModel: ObservableObject {
     @Published var mcpServerPort = 8080
     @Published private(set) var mcpServerRunning = false
     @Published private(set) var mcpServerStatusDescription = "Stopped"
+    @Published private(set) var blockedConversationNames: [String] = []
 
     private let accessibility = AccessibilityService()
     private let parser = WhatsAppAppParser()
@@ -32,8 +33,10 @@ final class AppModel: ObservableObject {
     private var listSignaturesById: [String: String] = [:]
     private let debugDirectory = URL(fileURLWithPath: "/tmp/AssistantMCPServer", isDirectory: true)
     private var cancellables: Set<AnyCancellable> = []
+    private let blockedConversationDefaultsKey = "blockedConversationNames"
 
     init() {
+        loadBlockedConversationNames()
         bindMemoryStore()
         configureMCPConnector()
         refreshStatus()
@@ -98,12 +101,13 @@ final class AppModel: ObservableObject {
         do {
             let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
+            let allowedConversations = filteredConversations(screenState.conversations)
             writeDebugArtifacts(snapshot: snapshot, screenState: screenState, prefix: "refresh")
-            memoryStore.replaceConversations(screenState.conversations)
+            memoryStore.replaceConversations(allowedConversations)
             lastRefreshDescription = "List refreshed at \(Date().formatted(date: .omitted, time: .standard))"
-            appendLog("Parsed \(screenState.conversations.count) conversations from WhatsApp.")
+            appendLog("Parsed \(allowedConversations.count) conversations from WhatsApp.")
             appendLog("Wrote parser debug report to \(debugDirectory.path).")
-            await refreshChangedChats(from: screenState.conversations)
+            await refreshChangedChats(from: allowedConversations)
         } catch {
             appendLog("Failed to refresh conversations: \(error.localizedDescription)", level: .error)
         }
@@ -111,6 +115,24 @@ final class AppModel: ObservableObject {
 
     func openConversation(_ conversation: ConversationSummary) {
         memoryStore.selectConversation(id: conversation.id)
+    }
+
+    func isBlocked(_ conversationName: String) -> Bool {
+        blockedConversationNames.contains(conversationName)
+    }
+
+    func toggleBlockedConversation(_ conversationName: String) {
+        if isBlocked(conversationName) {
+            unblockConversation(named: conversationName)
+        } else {
+            blockConversation(named: conversationName)
+        }
+    }
+
+    func unblockConversation(named conversationName: String) {
+        blockedConversationNames.removeAll { $0 == conversationName }
+        persistBlockedConversationNames()
+        appendLog("Removed \(conversationName) from blacklist.")
     }
 
     func startPolling() {
@@ -218,6 +240,10 @@ final class AppModel: ObservableObject {
 
         guard let conversation = memoryStore.conversation(for: conversationId) else {
             throw MCPBridgeError.invalidParameter("chatId")
+        }
+
+        guard !isBlocked(conversation.name) else {
+            throw MCPBridgeError.invalidRequest
         }
 
         guard prepareForWhatsAppInspection() else {
@@ -571,5 +597,39 @@ final class AppModel: ObservableObject {
         Messages:
         \(messages.isEmpty ? "- none" : messages)
         """
+    }
+
+    private func filteredConversations(_ conversations: [ConversationSummary]) -> [ConversationSummary] {
+        conversations.filter { !isBlocked($0.name) }
+    }
+
+    private func blockConversation(named conversationName: String) {
+        guard !isBlocked(conversationName) else {
+            return
+        }
+
+        blockedConversationNames.append(conversationName)
+        blockedConversationNames.sort()
+        persistBlockedConversationNames()
+
+        let blockedIDs = conversations
+            .filter { $0.name == conversationName }
+            .map(\.id)
+
+        for blockedID in blockedIDs {
+            listSignaturesById.removeValue(forKey: blockedID)
+            memoryStore.removeConversation(id: blockedID)
+        }
+
+        appendLog("Added \(conversationName) to blacklist.")
+    }
+
+    private func loadBlockedConversationNames() {
+        blockedConversationNames = UserDefaults.standard.stringArray(forKey: blockedConversationDefaultsKey) ?? []
+        blockedConversationNames.sort()
+    }
+
+    private func persistBlockedConversationNames() {
+        UserDefaults.standard.set(blockedConversationNames, forKey: blockedConversationDefaultsKey)
     }
 }

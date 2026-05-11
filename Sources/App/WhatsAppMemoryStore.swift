@@ -26,6 +26,8 @@ final class WhatsAppMemoryStore: ObservableObject {
 
     func replaceConversations(_ conversations: [ConversationSummary]) {
         self.conversations = conversations
+        let validIDs = Set(conversations.map(\.id))
+        chatStatesById = chatStatesById.filter { validIDs.contains($0.key) }
 
         if let selectedConversationId {
             let latestSelectedConversation = conversations.first { $0.id == selectedConversationId }
@@ -76,6 +78,23 @@ final class WhatsAppMemoryStore: ObservableObject {
             selectedChatState = chatStatesById[id]
         }
         emit(.selectedConversationChanged(id))
+    }
+
+    func clearSelection() {
+        selectedConversationId = nil
+        selectedChatState = nil
+        emit(.selectedConversationChanged(nil))
+    }
+
+    func removeConversation(id: String) {
+        conversations.removeAll { $0.id == id }
+        chatStatesById.removeValue(forKey: id)
+
+        if selectedConversationId == id {
+            clearSelection()
+        } else {
+            emit(.conversationsUpdated(conversations))
+        }
     }
 
     func chatState(for id: String) -> ChatState? {

@@ -43,6 +43,14 @@ struct ContentView: View {
                     chatState: appModel.selectedChatState,
                     messageDraft: $appModel.messageDraft,
                     isSendingMessage: appModel.isSendingMessage,
+                    isBlocked: appModel.selectedChatState.map { appModel.isBlocked($0.chat.name) } ?? false,
+                    onToggleBlocked: {
+                        guard let conversationName = appModel.selectedChatState?.chat.name else {
+                            return
+                        }
+
+                        appModel.toggleBlockedConversation(conversationName)
+                    },
                     onSend: {
                         Task {
                             await appModel.sendMessageToSelectedChat()
@@ -249,6 +257,30 @@ private struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            GroupBox("Blocked Conversations") {
+                if appModel.blockedConversationNames.isEmpty {
+                    Text("No blocked conversation titles.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(appModel.blockedConversationNames, id: \.self) { blockedName in
+                                HStack {
+                                    Text(blockedName)
+                                        .lineLimit(1)
+
+                                    Spacer()
+
+                                    Button("Remove") {
+                                        appModel.unblockConversation(named: blockedName)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer()
         }
         .padding(20)
@@ -324,6 +356,8 @@ private struct ChatDetailView: View {
     let chatState: ChatState?
     @Binding var messageDraft: String
     let isSendingMessage: Bool
+    let isBlocked: Bool
+    let onToggleBlocked: () -> Void
     let onSend: () -> Void
 
     var body: some View {
@@ -386,6 +420,13 @@ private struct ChatDetailView: View {
             Label(chatState.canSendText ? "Can send" : "Cannot send", systemImage: chatState.canSendText ? "paperplane" : "paperplane.circle")
                 .font(.caption)
                 .foregroundStyle(chatState.canSendText ? .green : .secondary)
+
+            Button {
+                onToggleBlocked()
+            } label: {
+                Label(isBlocked ? "Unblock" : "Block", systemImage: isBlocked ? "checkmark.shield" : "hand.raised")
+            }
+            .buttonStyle(.bordered)
         }
         .padding(14)
     }
