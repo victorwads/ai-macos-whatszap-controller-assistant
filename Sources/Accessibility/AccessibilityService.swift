@@ -62,6 +62,24 @@ final class AccessibilityService {
         }
     }
 
+    func setValue(_ newValue: String, at path: [Int]) throws {
+        guard let app = findWhatsAppApplication() else {
+            throw AccessibilityError.whatsAppNotRunning
+        }
+
+        app.activate(options: [.activateIgnoringOtherApps])
+
+        let root = AXUIElementCreateApplication(app.processIdentifier)
+        guard let element = element(at: path, from: root) else {
+            throw AccessibilityError.nodeNotFound
+        }
+
+        let result = AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, newValue as CFTypeRef)
+        guard result == .success else {
+            throw AccessibilityError.actionFailed(result.rawValue)
+        }
+    }
+
     private func captureNode(from element: AXUIElement, path: [Int], depth: Int, maxDepth: Int) -> RawAXNode {
         let children: [RawAXNode]
         if depth < maxDepth {

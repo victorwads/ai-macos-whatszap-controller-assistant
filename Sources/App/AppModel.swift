@@ -14,7 +14,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var waitingForAccessibilityRelaunch = false
 
     private let accessibility = AccessibilityService()
-    private let parser = WhatsAppScreenParser()
+    private let parser = WhatsAppAppParser()
+    private let interactor = WhatsAppInteractor()
     private var pollingTask: Task<Void, Never>?
     private var permissionMonitorTask: Task<Void, Never>?
     private var chatStatesById: [String: ChatState] = [:]
@@ -97,7 +98,7 @@ final class AppModel: ObservableObject {
             return
         }
 
-            await loadMessages(for: conversation, reason: "manual selection", updateSelectedChat: true)
+        await loadMessages(for: conversation, reason: "manual selection", updateSelectedChat: true)
     }
 
     func startPolling() {
@@ -187,7 +188,7 @@ final class AppModel: ObservableObject {
 
     private func loadMessages(for conversation: ConversationSummary, reason: String, updateSelectedChat: Bool) async {
         do {
-            try accessibility.pressNode(at: conversation.accessibilityPath)
+            try interactor.selectConversation(conversation, using: accessibility)
             try await Task.sleep(for: .milliseconds(650))
 
             let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)

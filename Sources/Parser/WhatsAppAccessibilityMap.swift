@@ -22,4 +22,14 @@ struct WhatsAppAccessibilityMap {
             node.role == "AXTextArea" && node.nodeDescription?.contains("Compose message") == true
         }
     }
+
+    func sendButton(in root: RawAXNode) -> RawAXNode? {
+        root.firstDescendant { node in
+            let texts = [node.title, node.nodeDescription, node.help, node.stringValue]
+                .compactMap { $0?.lowercased() }
+                .joined(separator: " ")
+
+            return node.role == "AXButton" && (texts.contains("send") || texts.contains("enviar"))
+        }
+    }
 }
