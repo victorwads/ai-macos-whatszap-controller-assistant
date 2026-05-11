@@ -69,11 +69,37 @@ Generate the Xcode project again after changing `project.yml`:
 xcodegen generate
 ```
 
+Restart the app from a clean build:
+
+```sh
+./scripts/restart.sh
+```
+
 Open the project:
 
 ```sh
 open AssistantMCPServer.xcodeproj
 ```
+
+## Development Commands
+
+Build with a stable local `DerivedData` path:
+
+```sh
+xcodebuild \
+  -project AssistantMCPServer.xcodeproj \
+  -scheme AssistantMCPServer \
+  -configuration Debug \
+  -derivedDataPath build/DerivedData \
+  build
+```
+
+The restart script does the full local cycle:
+
+- closes all running `AssistantMCPServer` processes
+- regenerates the Xcode project with `xcodegen`
+- builds the Debug app into `build/DerivedData`
+- opens the freshly built app
 
 ## Desired MCP Tools
 
