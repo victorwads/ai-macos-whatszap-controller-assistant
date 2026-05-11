@@ -19,6 +19,7 @@ final class AppModel: ObservableObject {
     private var permissionMonitorTask: Task<Void, Never>?
     private var chatStatesById: [String: ChatState] = [:]
     private var listSignaturesById: [String: String] = [:]
+    private let debugDirectory = URL(fileURLWithPath: "/tmp/AssistantMCPServer", isDirectory: true)
 
     init() {
         refreshStatus()
@@ -62,8 +63,10 @@ final class AppModel: ObservableObject {
         }
 
         do {
-            let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 5)
+            let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
+            writeDebugArtifacts(snapshot: snapshot, screenState: parser.parse(snapshot: snapshot, messageLimit: 10), prefix: "manual-dump")
             appendLog("Captured WhatsApp Accessibility snapshot.")
+            appendLog("Wrote debug files to \(debugDirectory.path).")
             appendLog(snapshot.prettyDescription)
         } catch {
             appendLog("Failed to capture WhatsApp snapshot: \(error.localizedDescription)", level: .error)
@@ -76,11 +79,13 @@ final class AppModel: ObservableObject {
         }
 
         do {
-            let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 8)
+            let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
+            writeDebugArtifacts(snapshot: snapshot, screenState: screenState, prefix: "refresh")
             conversations = screenState.conversations
             lastRefreshDescription = "List refreshed at \(Date().formatted(date: .omitted, time: .standard))"
             appendLog("Parsed \(screenState.conversations.count) conversations from WhatsApp.")
+            appendLog("Wrote parser debug report to \(debugDirectory.path).")
             await refreshChangedChats(from: screenState.conversations)
         } catch {
             appendLog("Failed to refresh conversations: \(error.localizedDescription)", level: .error)
@@ -92,7 +97,7 @@ final class AppModel: ObservableObject {
             return
         }
 
-        await loadMessages(for: conversation, reason: "manual selection")
+            await loadMessages(for: conversation, reason: "manual selection", updateSelectedChat: true)
     }
 
     func startPolling() {
@@ -172,17 +177,22 @@ final class AppModel: ObservableObject {
                 continue
             }
 
-            await loadMessages(for: conversation, reason: previousSignature == nil ? "first mapping" : "list changed")
+            await loadMessages(
+                for: conversation,
+                reason: previousSignature == nil ? "first mapping" : "list changed",
+                updateSelectedChat: selectedChatState?.chat.id == conversation.id
+            )
         }
     }
 
-    private func loadMessages(for conversation: ConversationSummary, reason: String) async {
+    private func loadMessages(for conversation: ConversationSummary, reason: String, updateSelectedChat: Bool) async {
         do {
             try accessibility.pressNode(at: conversation.accessibilityPath)
             try await Task.sleep(for: .milliseconds(650))
 
-            let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 9)
+            let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
+            writeDebugArtifacts(snapshot: snapshot, screenState: screenState, prefix: "chat-\(conversation.id)")
             let latestConversation = screenState.conversations.first { $0.id == conversation.id } ?? conversation
 
             let chatState = ChatState(
@@ -193,7 +203,9 @@ final class AppModel: ObservableObject {
             )
 
             chatStatesById[conversation.id] = chatState
-            selectedChatState = chatState
+            if updateSelectedChat {
+                selectedChatState = chatState
+            }
             appendLog("Loaded \(screenState.messages.count) messages for \(conversation.name) (\(reason)).")
         } catch {
             appendLog("Failed to load messages for \(conversation.name): \(error.localizedDescription)", level: .error)
@@ -220,5 +232,37 @@ final class AppModel: ObservableObject {
 
     private func appendLog(_ message: String, level: LogLevel = .info) {
         logs.append(LogEntry(level: level, message: message))
+    }
+
+    private func writeDebugArtifacts(snapshot: WhatsAppSnapshot, screenState: WhatsAppScreenState, prefix: String) {
+        do {
+            try FileManager.default.createDirectory(at: debugDirectory, withIntermediateDirectories: true)
+            try snapshot.prettyDescription.write(to: debugDirectory.appendingPathComponent("latest-snapshot.txt"), atomically: true, encoding: .utf8)
+            try parser.debugReport(snapshot: snapshot).write(to: debugDirectory.appendingPathComponent("latest-parser-report.txt"), atomically: true, encoding: .utf8)
+            try conversationReport(screenState).write(to: debugDirectory.appendingPathComponent("latest-state.txt"), atomically: true, encoding: .utf8)
+
+            let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+            try parser.debugReport(snapshot: snapshot).write(to: debugDirectory.appendingPathComponent("\(timestamp)-\(prefix)-parser-report.txt"), atomically: true, encoding: .utf8)
+        } catch {
+            appendLog("Failed to write parser debug artifacts: \(error.localizedDescription)", level: .warning)
+        }
+    }
+
+    private func conversationReport(_ screenState: WhatsAppScreenState) -> String {
+        let conversations = screenState.conversations.map { conversation in
+            "- \(conversation.name) | unread=\(conversation.unreadCount) | date=\(conversation.lastMessageAtText ?? "nil") | preview=\(conversation.lastMessagePreview ?? "nil")"
+        }.joined(separator: "\n")
+
+        let messages = screenState.messages.map { message in
+            "- \(message.direction.rawValue) \(message.status.rawValue): \(message.text ?? message.rawAccessibilityText)"
+        }.joined(separator: "\n")
+
+        return """
+        Conversations:
+        \(conversations.isEmpty ? "- none" : conversations)
+
+        Messages:
+        \(messages.isEmpty ? "- none" : messages)
+        """
     }
 }

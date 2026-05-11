@@ -6,32 +6,33 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selectedConversationId) {
-                Section("Bridge") {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    sidebarHeader("Bridge")
                     Label("WhatsApp", systemImage: appModel.whatsappRunning ? "checkmark.circle.fill" : "xmark.circle")
                     Label("Accessibility", systemImage: appModel.accessibilityTrusted ? "checkmark.circle.fill" : "lock.trianglebadge.exclamationmark")
-                }
 
-                Section("Conversations") {
+                    sidebarHeader("Conversations")
                     ForEach(appModel.conversations) { conversation in
                         Button {
-                            selectedConversationId = conversation.id
-                            Task {
-                                await appModel.openConversation(conversation)
-                            }
+                            open(conversation)
                         } label: {
                             ConversationRow(conversation: conversation)
+                                .contentShape(Rectangle())
+                                .padding(.horizontal, 4)
+                                .background(selectionBackground(for: conversation))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
-                        .buttonStyle(.plain)
-                        .tag(conversation.id)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                }
 
-                Section("Runtime") {
+                    sidebarHeader("Runtime")
                     Text(appModel.runtimeDescription)
                         .font(.caption)
                         .textSelection(.enabled)
                 }
+                .padding(12)
             }
             .navigationTitle("Assistant MCP")
         } detail: {
@@ -45,6 +46,34 @@ struct ContentView: View {
                     .frame(minHeight: 180, maxHeight: 260)
             }
         }
+    }
+
+    private func open(_ conversation: ConversationSummary) {
+        guard appModel.selectedChatState?.chat.id != conversation.id else {
+            return
+        }
+
+        selectedConversationId = conversation.id
+        Task {
+            await appModel.openConversation(conversation)
+        }
+    }
+
+    @ViewBuilder
+    private func selectionBackground(for conversation: ConversationSummary) -> some View {
+        if selectedConversationId == conversation.id {
+            Color.accentColor.opacity(0.22)
+        } else {
+            Color.clear
+        }
+    }
+
+    private func sidebarHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.top, 4)
     }
 
     private var toolbar: some View {

@@ -30,6 +30,40 @@ struct RawAXNode: Identifiable, Equatable {
         [self] + children.flatMap(\.flattened)
     }
 
+    func node(at dotPath: String) -> RawAXNode? {
+        let path = dotPath
+            .split(separator: ".")
+            .compactMap { Int($0) }
+
+        return node(at: path)
+    }
+
+    func node(at path: [Int]) -> RawAXNode? {
+        guard let first = path.first else {
+            return self
+        }
+
+        guard children.indices.contains(first) else {
+            return nil
+        }
+
+        return children[first].node(at: Array(path.dropFirst()))
+    }
+
+    func firstDescendant(where predicate: (RawAXNode) -> Bool) -> RawAXNode? {
+        if predicate(self) {
+            return self
+        }
+
+        for child in children {
+            if let match = child.firstDescendant(where: predicate) {
+                return match
+            }
+        }
+
+        return nil
+    }
+
     func prettyDescription(depth: Int = 0) -> String {
         let indent = String(repeating: "  ", count: depth)
         var parts: [String] = []

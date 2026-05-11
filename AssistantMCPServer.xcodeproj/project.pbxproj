@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0889F207D5209C7AD60F417E /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = B335ECD95F20909CECE348FD /* Message.swift */; };
+		36A088DB4FDB325B9EDBF7B6 /* WhatsAppAccessibilityMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1884F5B17FE11642E75E0F /* WhatsAppAccessibilityMap.swift */; };
 		4FE25CD720B41D80C2CCF650 /* AccessibilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCEA33DC0699E7586A97A76 /* AccessibilityService.swift */; };
 		78755B49DCF8101E41103851 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571AC0B62C619CAB778DE290 /* ContentView.swift */; };
 		8ECD2D343AD65A4C79C5713D /* ConversationSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20B58C9E7897C882058F324 /* ConversationSummary.swift */; };
@@ -23,6 +24,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2B1884F5B17FE11642E75E0F /* WhatsAppAccessibilityMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsAppAccessibilityMap.swift; sourceTree = "<group>"; };
 		313A2DF0A99E2114E941F27D /* MCPBridgeConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPBridgeConnector.swift; sourceTree = "<group>"; };
 		337AABF6774B2C965A1EFA7B /* WhatsAppScreenParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsAppScreenParser.swift; sourceTree = "<group>"; };
 		4B4D61B6655412532014B3F3 /* AssistantMCPServerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantMCPServerApp.swift; sourceTree = "<group>"; };
@@ -65,6 +67,7 @@
 		559117391B2B459DB34EBA72 /* Parser */ = {
 			isa = PBXGroup;
 			children = (
+				2B1884F5B17FE11642E75E0F /* WhatsAppAccessibilityMap.swift */,
 				337AABF6774B2C965A1EFA7B /* WhatsAppScreenParser.swift */,
 			);
 			path = Parser;
@@ -196,6 +199,7 @@
 				B4DAE6153D479735EB046B00 /* MCPBridgeConnector.swift in Sources */,
 				0889F207D5209C7AD60F417E /* Message.swift in Sources */,
 				E7DE6FAE87284F0F590BD6DD /* RawAXNode.swift in Sources */,
+				36A088DB4FDB325B9EDBF7B6 /* WhatsAppAccessibilityMap.swift in Sources */,
 				B70501F77AF65F11B61B12C5 /* WhatsAppScreenParser.swift in Sources */,
 				E70AF90D337046D43BBA5515 /* WhatsAppSnapshot.swift in Sources */,
 			);
