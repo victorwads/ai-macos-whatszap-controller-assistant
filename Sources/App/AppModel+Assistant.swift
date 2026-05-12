@@ -16,6 +16,8 @@ extension AppModel {
     - ask_user: Ask the user a question out loud and wait for their spoken response before continuing.
 
     Use get_instructions to fetch the latest instructions currently stored in the app UI.
+
+    When using speak or ask_user, write the text with clear punctuation and spacing (short sentences, commas, and periods) so the speech synthesizer reads it naturally and accurately.
     """
 
     func loadAssistantInstructions() {
