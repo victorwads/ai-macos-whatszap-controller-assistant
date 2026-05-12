@@ -130,18 +130,32 @@ final class MCPHTTPServer: MCPServerTransporting {
     }
 
     private func process(request: IncomingHTTPRequest) async -> Data {
+        if let origin = request.headers["origin"], !origin.isEmpty, !isAllowedOrigin(origin) {
+            return httpResponse(status: 403, body: Data("Forbidden origin.".utf8), contentType: "text/plain; charset=utf-8")
+        }
+
         switch request.method {
         case "GET":
-            guard request.path == "/mcp" else {
-                return httpResponse(status: 404, body: errorPayload(message: "Route not found."))
+            switch request.path {
+            case "/health":
+                return httpResponse(status: 200, body: healthPayload())
+            case "/mcp":
+                // Streamable HTTP transport allows GET only for optional SSE.
+                // If SSE is not supported, return 405 per spec.
+                return httpResponse(
+                    status: 405,
+                    body: Data("Method Not Allowed. SSE not supported; use POST /mcp.\n".utf8),
+                    contentType: "text/plain; charset=utf-8"
+                )
+            default:
+                return httpResponse(status: 404, body: Data("Route not found.\n".utf8), contentType: "text/plain; charset=utf-8")
             }
-            return httpResponse(status: 200, body: healthPayload())
         case "POST":
             guard request.path == "/mcp" else {
-                return httpResponse(status: 404, body: errorPayload(message: "Route not found."))
+                return httpResponse(status: 404, body: Data("Route not found.\n".utf8), contentType: "text/plain; charset=utf-8")
             }
         default:
-            return httpResponse(status: 405, body: errorPayload(message: "Use POST /mcp for JSON-RPC requests."))
+            return httpResponse(status: 405, body: Data("Use POST /mcp for JSON-RPC requests.\n".utf8), contentType: "text/plain; charset=utf-8")
         }
 
         do {
@@ -216,7 +230,36 @@ final class MCPHTTPServer: MCPServerTransporting {
         }
 
         let body = data.subdata(in: bodyStart..<(bodyStart + contentLength))
-        return IncomingHTTPRequest(method: method, path: path, body: body)
+        let parsedHeaders = parseHeaders(headerLines.dropFirst())
+        return IncomingHTTPRequest(method: method, path: path, headers: parsedHeaders, body: body)
+    }
+
+    private func parseHeaders(_ lines: ArraySlice<String>) -> [String: String] {
+        var headers: [String: String] = [:]
+        for line in lines {
+            guard let separatorIndex = line.firstIndex(of: ":") else { continue }
+            let name = line[..<separatorIndex].trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let value = line[line.index(after: separatorIndex)...].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+            headers[name] = value
+        }
+        return headers
+    }
+
+    private func isAllowedOrigin(_ origin: String) -> Bool {
+        if origin == "null" { return true }
+        guard let url = URL(string: origin), let host = url.host?.lowercased() else { return false }
+        if host == "localhost" || host == "127.0.0.1" || host == "::1" { return true }
+
+        // Allow native-app origins (Electron/WebViews) while still blocking DNS rebinding.
+        // These origins typically do not include a meaningful host.
+        if let scheme = url.scheme?.lowercased() {
+            if scheme == "codex" || scheme.hasPrefix("vscode") {
+                return true
+            }
+        }
+
+        return false
     }
 
     private func respond(on connection: NWConnection, payload: Data) {
@@ -265,7 +308,7 @@ final class MCPHTTPServer: MCPServerTransporting {
         return (try? encoder.encode(payload)) ?? Data()
     }
 
-    private func httpResponse(status: Int, body: Data) -> Data {
+    private func httpResponse(status: Int, body: Data, contentType: String = "application/json") -> Data {
         let statusText: String
         switch status {
         case 200: statusText = "OK"
@@ -278,7 +321,7 @@ final class MCPHTTPServer: MCPServerTransporting {
 
         var response = "HTTP/1.1 \(status) \(statusText)\r\n"
         response += "Host: \(host)\r\n"
-        response += "Content-Type: application/json\r\n"
+        response += "Content-Type: \(contentType)\r\n"
         response += "Content-Length: \(body.count)\r\n"
         response += "Connection: close\r\n\r\n"
 

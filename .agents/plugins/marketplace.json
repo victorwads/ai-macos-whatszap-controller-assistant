@@ -1,0 +1,21 @@
+{
+  "name": "assistantmcpserver-local",
+  "interface": {
+    "displayName": "AssistantMCPServer (Local)"
+  },
+  "plugins": [
+    {
+      "name": "codex-whatsapp-assistant",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex-whatsapp-assistant"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
+

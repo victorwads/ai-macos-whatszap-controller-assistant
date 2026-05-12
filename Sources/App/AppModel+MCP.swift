@@ -135,10 +135,31 @@ extension AppModel {
                 return .failure(MCPServerError.invalidRequest)
             }
 
-            return await callTool(MCPToolCall(name: name, arguments: arguments))
+            let result = await callTool(MCPToolCall(name: name, arguments: arguments))
+            switch result {
+            case .success(let value):
+                return .success(wrapToolResult(value))
+            case .failure(let error):
+                return .failure(error)
+            }
         default:
             return .failure(MCPServerError.unsupportedMethod(request.method))
         }
+    }
+
+    private func wrapToolResult(_ value: JSONValue) -> JSONValue {
+        let encoder = JSONEncoder()
+        let text = (try? encoder.encode(value)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+
+        return .object([
+            "content": .array([
+                .object([
+                    "type": .string("text"),
+                    "text": .string(text)
+                ])
+            ]),
+            "isError": .bool(false)
+        ])
     }
 
     private var toolDefinitions: [MCPToolDefinition] {

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "assistant-whatsapp": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}

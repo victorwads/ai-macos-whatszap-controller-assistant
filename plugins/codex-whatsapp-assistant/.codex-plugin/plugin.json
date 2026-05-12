@@ -1,0 +1,43 @@
+{
+  "name": "codex-whatsapp-assistant",
+  "version": "0.1.0",
+  "description": "Assistente do Codex para WhatsApp Desktop via MCP local (HTTP).",
+  "author": {
+    "name": "[TODO: Author Name]",
+    "email": "[TODO: author@example.com]",
+    "url": "[TODO: https://github.com/author]"
+  },
+  "homepage": "[TODO: https://docs.example.com/plugin]",
+  "repository": "[TODO: https://github.com/author/plugin]",
+  "license": "[TODO: MIT]",
+  "keywords": [
+    "whatsapp",
+    "assistant",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Codex WhatsApp Assistant",
+    "shortDescription": "Assistente pessoal no WhatsApp Desktop",
+    "longDescription": "Conecta no seu MCP Server local para ler/enviar mensagens no WhatsApp Desktop e te ajudar como assistente pessoal (resumos, rascunhos e respostas). Requer o WhatsApp Desktop aberto e o Assistant MCP Server rodando (ex.: http://localhost:8080/mcp).",
+    "developerName": "[TODO: Developer Name]",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "[TODO: https://example.com/]",
+    "privacyPolicyURL": "[TODO: https://example.com/privacy]",
+    "termsOfServiceURL": "[TODO: https://example.com/terms]",
+    "defaultPrompt": [
+      "Envie uma mensagem para um contato específico.",
+      "Resuma as mensagens não lidas do WhatsApp.",
+      "Busque a última mensagem de um chat."
+    ],
+    "brandColor": "#25D366",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": []
+  }
+}
