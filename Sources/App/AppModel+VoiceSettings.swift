@@ -13,6 +13,19 @@ extension AppModel {
             }
     }
 
+    func availableSpeechVoices(forLanguage language: String) -> [AVSpeechSynthesisVoice] {
+        let trimmed = language.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return availableSpeechVoices }
+
+        let matches = availableSpeechVoices.filter { $0.language == trimmed }
+        return matches.isEmpty ? availableSpeechVoices : matches
+    }
+
+    func voiceForIdentifier(_ identifier: String?) -> AVSpeechSynthesisVoice? {
+        guard let identifier, !identifier.isEmpty else { return nil }
+        return AVSpeechSynthesisVoice(identifier: identifier)
+    }
+
     var availableRecognitionLocales: [Locale] {
         SFSpeechRecognizer.supportedLocales()
             .sorted { $0.identifier < $1.identifier }
@@ -44,6 +57,11 @@ extension AppModel {
             .sink { [weak self] value in
                 guard let self else { return }
                 UserDefaults.standard.set(value, forKey: self.speechLanguageDefaultsKey)
+
+                if let voice = self.voiceForIdentifier(self.speechVoiceIdentifier),
+                   voice.language != value {
+                    self.speechVoiceIdentifier = nil
+                }
             }
             .store(in: &cancellables)
 
@@ -64,4 +82,3 @@ extension AppModel {
             .store(in: &cancellables)
     }
 }
-

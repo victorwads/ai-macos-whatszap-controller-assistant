@@ -163,13 +163,14 @@ struct SettingsScreen: View {
                         HStack {
                             Text("Voice")
                             Spacer()
+                            let voices = appModel.availableSpeechVoices(forLanguage: appModel.speechLanguage)
                             Picker("Voice", selection: Binding<String>(
                                 get: { appModel.speechVoiceIdentifier ?? "" },
                                 set: { appModel.speechVoiceIdentifier = $0.isEmpty ? nil : $0 }
                             )) {
                                 Text("Auto").tag("")
-                                ForEach(appModel.availableSpeechVoices, id: \.identifier) { voice in
-                                    Text("\(voice.language) • \(voice.name)").tag(voice.identifier)
+                                ForEach(voices, id: \.identifier) { voice in
+                                    Text("\(voice.name)\(voice.quality == .enhanced ? " (Enhanced)" : "")").tag(voice.identifier)
                                 }
                             }
                             .frame(width: 360, alignment: .trailing)
