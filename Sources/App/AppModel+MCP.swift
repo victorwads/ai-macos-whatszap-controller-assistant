@@ -144,7 +144,7 @@ extension AppModel {
         [
             MCPToolDefinition(
                 name: "list_chats",
-                description: "Lists the chats currently mapped in memory from WhatsApp.",
+                description: "Lists relevant chats from WhatsApp.",
                 inputSchema: [
                     "type": .string("object"),
                     "properties": .object([:])
@@ -228,11 +228,10 @@ extension AppModel {
                 return .failure(error)
             }
         case "wait_for_message":
-            let timeoutSeconds = max(1, call.arguments["timeoutSeconds"]?.intValue ?? 60)
+//            let timeoutSeconds = max(1, call.arguments["timeoutSeconds"]?.intValue ?? 60)
             let result = await memoryStore.waitForNextMessage(
                 chatId: call.arguments["chatId"]?.stringValue,
                 afterMessageId: call.arguments["afterMessageId"]?.stringValue,
-                timeoutSeconds: timeoutSeconds
             )
 
             if let result {
@@ -254,8 +253,8 @@ extension AppModel {
             "id": .string(conversation.id),
             "name": .string(conversation.name),
             "unreadCount": .number(Double(conversation.unreadCount)),
-            "isPinned": .bool(conversation.isPinned),
-            "isSelected": .bool(conversation.isSelected),
+//            "isPinned": .bool(conversation.isPinned),
+//            "isSelected": .bool(conversation.isSelected),
             "lastMessagePreview": conversation.lastMessagePreview.map(JSONValue.string) ?? .null,
             "lastMessageAtText": conversation.lastMessageAtText.map(JSONValue.string) ?? .null,
             "lastMessageDirection": .string(conversation.lastMessageDirection.rawValue),

@@ -20,7 +20,7 @@ struct ConversationSummary: Identifiable, Equatable {
             lastMessageAtText ?? "",
             "\(unreadCount)",
             lastMessageDirection.rawValue,
-            lastMessageStatus.rawValue
+//            lastMessageStatus.rawValue
         ].joined(separator: "|")
     }
 }

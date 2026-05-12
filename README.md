@@ -8,7 +8,7 @@ This project exists because direct Computer Use interaction with WhatsApp is too
 
 - A native macOS process watches WhatsApp locally.
 - It parses the Accessibility tree into stable objects.
-- It waits for changes locally, polling every 1s or similar.
+- It waits for changes locally, polling every few seconds (default 3s).
 - Codex calls MCP tools and receives clean events instead of repeatedly reading the entire UI tree.
 
 The primary use case is active personal-assistant work: WhatsApp conversations, scheduling follow-ups, waiting for replies, and coordinating tasks without model-side `sleep` loops.
@@ -35,33 +35,29 @@ Native macOS SwiftUI app responsible for:
 - finding WhatsApp Desktop by bundle ID, currently `net.whatsapp.WhatsApp`
 - reading WhatsApp Accessibility nodes through `AXUIElement`
 - parsing visible chats, unread counts, selected chat, messages, typing state, and compose field
-- sending text messages
+- sending text messages via Accessibility interactions
 - showing live logs and raw parser output on screen
-- later exposing a local HTTP/WebSocket bridge
+- exposing a local MCP HTTP server on `/mcp`
 
-`whatsapp-mcp-server`
-
-Future MCP process responsible for:
-
-- exposing MCP tools to Codex
-- calling the native app over localhost
-- returning stable JSON objects
-- hiding raw Accessibility noise from the model
-- implementing blocking wait tools such as `wait_for_next_message`
-
-The macOS app should own Accessibility and UI control. The MCP layer should stay thin.
+The current app already includes the MCP server layer in the same process, serving JSON-RPC tool requests directly. A future split into a separate MCP process is still possible, but the current implementation keeps the HTTP bridge and Accessibility logic together.
 
 ## Current Project
 
-This repo currently contains a generated Xcode project for a minimal macOS SwiftUI app:
+This repo currently contains a generated Xcode project for a macOS SwiftUI app with Accessibility polling and an embedded MCP HTTP bridge:
 
 - `project.yml`: XcodeGen project definition
 - `AssistantMCPServer.xcodeproj`: generated Xcode project
 - `Sources/AssistantMCPServerApp.swift`: app entrypoint
-- `Sources/ContentView.swift`: basic debug UI
-- `Sources/AppModel.swift`: app state and log actions
-- `Sources/AccessibilityService.swift`: initial Accessibility permission and WhatsApp snapshot code
+- `Sources/ContentView.swift`: main UI and MCP server controls
 - `Sources/LogView.swift`: live log panel
+- `Sources/App/AppModel.swift`: app state, startup, and service wiring
+- `Sources/App/AppModel+Polling.swift`: polling loop and refresh logic
+- `Sources/App/AppModel+Messaging.swift`: send-message flow and enqueue semantics
+- `Sources/App/AppModel+MCP.swift`: MCP JSON-RPC request handling and tool definitions
+- `Sources/App/WhatsAppMemoryStore.swift`: in-memory chat state and wait-for-message support
+- `Sources/Parser/WhatsAppInteractor.swift`: selecting conversations and sending messages in WhatsApp
+- `Sources/Parser/WhatsAppAccessibilityMap.swift`: heuristics for locating WhatsApp AX nodes
+- `Sources/Accessibility/AccessibilityService.swift`: low-level AX and keyboard event interactions
 
 ## Default Development Flow
 
@@ -117,29 +113,23 @@ The restart script uses `build/DerivedData`, so the built app path stays stable 
 
 ## Desired MCP Tools
 
-The first tool should be called once per Codex session:
+The app currently exposes a local MCP HTTP server at `/mcp` that implements JSON-RPC-style `tools/list` and `tools/call` requests.
 
-```text
-get_instructions()
-```
-
-It should return the operational prompt for WhatsApp handling, including cadence, tone, audio limitations, and when to finalize conversations.
-
-Core tools:
+Current implemented tools:
 
 ```text
 list_chats()
-list_unread_chats()
-open_chat(chat_id | name)
-get_chat_messages(chat_id, limit = 20)
+get_recent_messages(chat_id, limit = 10)
 send_message(chat_id, text)
-wait_for_next_message(chat_id, timeout_seconds = 300)
-wait_for_any_message(timeout_seconds = 300)
-wait_for_chat_change(chat_id, include_typing = true, timeout_seconds = 300)
-get_chat_state(chat_id)
+wait_for_message(chat_id?, afterMessageId?, timeoutSeconds = 60)
 ```
 
-The most important tool is `wait_for_next_message`. It should replace model-side `sleep` loops. The MCP call can remain open while the native app polls WhatsApp locally, then return only when a new message or relevant state change is detected.
+The MCP server also accepts lightweight protocol messages such as `initialize`, `ping`, and `notifications/initialized` for integration compatibility.
+
+The most important runtime pattern is:
+- the native app polls WhatsApp locally on a schedule
+- the MCP server answers tool calls from the app state
+- `wait_for_message` can be used to avoid model-side polling by waiting until new chat state arrives
 
 ## Data Model
 
@@ -227,26 +217,23 @@ Compares snapshots and emits events:
 
 ## Polling And Waits
 
-The native app can poll locally:
+The native app currently polls WhatsApp locally on a scheduled background loop.
 
 ```text
-every 1s:
-  read WhatsApp AX tree
-  parse chat list
-  parse selected conversation
-  compare with previous snapshot
-  emit events
-  resolve pending wait calls
+every 3s (default):
+  capture WhatsApp AX snapshot
+  parse chat list and selected chat state
+  update the in-memory store
+  refresh changed conversations and message state
 ```
 
-Future optimization:
+The actual code uses:
+- `AppModel.startPolling()` to start the loop
+- `AppModel.schedulePollingRefresh()` to enqueue work in the scheduler
+- `AccessibilityActionScheduler` to serialize AX actions and respect priorities
+- `WhatsAppMemoryStore` to keep conversation state and signal new messages
 
-- poll faster while a contact is typing
-- poll slower when idle
-- use `AXObserver` where reliable
-- keep `1s` as the default baseline
-
-The important part is that Codex should not spend tokens repeatedly calling `get_app_state` or sleeping. The local process waits and returns a clean event.
+That means the app owns the polling and state tracking. The MCP server only exposes the current state and action tools over HTTP.
 
 ## Conversation Behavior Instructions
 

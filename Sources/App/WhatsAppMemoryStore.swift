@@ -105,7 +105,8 @@ final class WhatsAppMemoryStore: ObservableObject {
         conversations.first(where: { $0.id == id })
     }
 
-    func waitForNextMessage(chatId: String?, afterMessageId: String?, timeoutSeconds: Int) async -> WaitForMessageResult? {
+    // 12 Hours Timeout
+    func waitForNextMessage(chatId: String?, afterMessageId: String?, timeoutSeconds: Int = 43200) async -> WaitForMessageResult? {
         if let immediateMatch = latestMessageResult(chatId: chatId, afterMessageId: afterMessageId) {
             return immediateMatch
         }
