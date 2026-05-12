@@ -22,6 +22,12 @@ actor VoiceAssistant {
         }
     }
 
+    func stopSpeaking(immediately: Bool = true) async {
+        await MainActor.run {
+            self.synthesizer.stopSpeaking(at: immediately ? .immediate : .word)
+        }
+    }
+
     func askUser(prompt: String, language: String = "pt-BR", voiceIdentifier: String? = nil, recognitionLocaleIdentifier: String = "pt-BR", timeoutSeconds: Int = 20) async throws -> String {
         await speak(prompt, language: language, voiceIdentifier: voiceIdentifier)
         return try await listen(recognitionLocaleIdentifier: recognitionLocaleIdentifier, timeoutSeconds: timeoutSeconds)

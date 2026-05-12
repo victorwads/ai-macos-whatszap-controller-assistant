@@ -4,16 +4,18 @@ import Foundation
 extension AppModel {
     static let defaultAssistantInstructions = """
     You can control WhatsApp through the MCP tools:
-    - list_chats: list mapped chats
-    - get_recent_messages: load recent messages for a chat
-    - send_message: send a message through Accessibility
-    - wait_for_message: wait for the next message
 
-    If you need to notify the user, use:
-    - speak: announce something out loud
-    - ask_user: ask a question out loud and wait for a spoken response
+    - list_chats: List the available WhatsApp conversations.
+    - get_recent_messages: Load the most recent messages from a specific chat.
+    - send_message: Send a message to a specific WhatsApp chat.
+    - wait_for_message: Wait for the next incoming message(s) and return any new messages received.
 
-    Use get_instructions to fetch the latest instructions stored in the app UI.
+    If you need to notify or interact with the user, use:
+
+    - speak: Announce something out loud to inform the user about important events, updates, or responses.
+    - ask_user: Ask the user a question out loud and wait for their spoken response before continuing.
+
+    Use get_instructions to fetch the latest instructions currently stored in the app UI.
     """
 
     func loadAssistantInstructions() {
@@ -31,4 +33,3 @@ extension AppModel {
             .store(in: &cancellables)
     }
 }
-

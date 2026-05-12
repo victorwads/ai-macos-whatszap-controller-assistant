@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SettingsScreen: View {
     @ObservedObject var appModel: AppModel
+    @State private var isReadingInstructions = false
 
     var body: some View {
         ScrollView {
@@ -131,6 +132,28 @@ struct SettingsScreen: View {
                         } label: {
                             Label("Copy MCP Snippet", systemImage: "doc.on.doc")
                         }
+
+                        Divider()
+
+                        HStack {
+                            Text("Instructions")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+
+                            Spacer()
+
+                            Button("Reset to Default") {
+                                appModel.assistantInstructions = AppModel.defaultAssistantInstructions
+                            }
+                        }
+
+                        TextEditor(text: $appModel.assistantInstructions)
+                            .font(.system(.caption, design: .monospaced))
+                            .frame(minHeight: 220)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.secondary.opacity(0.2))
+                            )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -193,29 +216,25 @@ struct SettingsScreen: View {
                         Button {
                             let text = appModel.assistantInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !text.isEmpty else { return }
-                            Task {
-                                await appModel.voiceAssistant.speak(
-                                    text,
-                                    language: appModel.speechLanguage,
-                                    voiceIdentifier: appModel.speechVoiceIdentifier,
-                                    rate: appModel.speechRate
-                                )
+                            if isReadingInstructions {
+                                isReadingInstructions = false
+                                Task {
+                                    await appModel.voiceAssistant.stopSpeaking()
+                                }
+                            } else {
+                                isReadingInstructions = true
+                                Task {
+                                    await appModel.voiceAssistant.speak(
+                                        text,
+                                        language: appModel.speechLanguage,
+                                        voiceIdentifier: appModel.speechVoiceIdentifier,
+                                        rate: appModel.speechRate
+                                    )
+                                }
                             }
                         } label: {
-                            Label("Test (Read Instructions)", systemImage: "speaker.wave.2.fill")
+                            Label(isReadingInstructions ? "Stop" : "Test (Read Instructions)", systemImage: isReadingInstructions ? "stop.fill" : "speaker.wave.2.fill")
                         }
-
-                        Text("Instructions")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        TextEditor(text: $appModel.assistantInstructions)
-                            .font(.system(.caption, design: .monospaced))
-                            .frame(minHeight: 180)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.secondary.opacity(0.2))
-                            )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
