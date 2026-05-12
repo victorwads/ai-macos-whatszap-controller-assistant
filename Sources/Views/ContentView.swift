@@ -73,18 +73,12 @@ struct ContentView: View {
 
             Spacer()
 
-            StatusBadge(
-                title: "WhatsApp \(appModel.whatsappRunning ? "Open" : "Closed")",
-                isOnline: appModel.whatsappRunning,
-                subtitle: nil,
-                help: "Shows whether WhatsApp is currently running."
-            )
-
-            StatusBadge(
-                title: "Accessibility \(appModel.accessibilityTrusted ? "OK" : "Missing")",
-                isOnline: appModel.accessibilityTrusted,
-                subtitle: nil,
-                help: "Shows whether this app has Accessibility permission."
+            BridgeStatusBadge(
+                accessibilityTrusted: appModel.accessibilityTrusted,
+                whatsappRunning: appModel.whatsappRunning,
+                onRequestAccessibilityPermission: {
+                    appModel.requestAccessibilityPermission()
+                }
             )
 
             MCPServerStatusBadge(

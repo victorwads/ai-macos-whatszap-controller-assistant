@@ -11,19 +11,14 @@ struct MCPServerStatusBadge: View {
                 .fill(isRunning ? Color.green : Color.red)
                 .frame(width: 8, height: 8)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text("MCP \(isRunning ? "Online" : "Offline")")
-                    .font(.caption.weight(.semibold))
-
-                Text(address)
-                    .font(.caption2.monospaced())
-                    .foregroundStyle(.secondary)
-            }
+            Text(address)
+                .font(.caption2.monospaced())
+                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(Color(nsColor: .controlBackgroundColor))
         .clipShape(Capsule())
-        .help(statusDescription)
+        .help("MCP \(isRunning ? "Online" : "Offline")\n\(statusDescription)")
     }
 }
