@@ -19,8 +19,18 @@ struct DebugTreeScreen: View {
                 let selectedNode = snapshot.rootNode.node(at: model.selectedNodePath ?? []) ?? focusedNode
 
                 HSplitView {
-                    List { treeNode(snapshot.rootNode) }
+                    ScrollViewReader { proxy in
+                        List(selection: $model.selectedNodePath) {
+                            treeNode(snapshot.rootNode)
+                        }
                         .frame(minWidth: 520)
+                        .onChange(of: model.scrollToNodeId) { _, newValue in
+                            guard let newValue else { return }
+                            withAnimation(.snappy) {
+                                proxy.scrollTo(newValue, anchor: .center)
+                            }
+                        }
+                    }
 
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
@@ -111,7 +121,7 @@ struct DebugTreeScreen: View {
         )
 
         if node.children.isEmpty {
-            return AnyView(row(node))
+            return AnyView(row(node).tag(node.accessibilityPath).id(nodeId))
         }
 
         return AnyView(
@@ -121,6 +131,8 @@ struct DebugTreeScreen: View {
                 }
             } label: {
                 row(node)
+                    .tag(node.accessibilityPath)
+                    .id(nodeId)
             }
         )
     }
@@ -134,6 +146,7 @@ struct DebugTreeScreen: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onTapGesture { model.selectedNodePath = node.accessibilityPath }
@@ -301,4 +314,3 @@ struct DebugTreeScreen: View {
         NSPasteboard.general.setString(text, forType: .string)
     }
 }
-

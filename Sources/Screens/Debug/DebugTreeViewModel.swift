@@ -8,6 +8,7 @@ final class DebugTreeViewModel: ObservableObject {
     @Published var selectedNodePreviewImage: NSImage?
     @Published var selectedNodePreviewError: String?
     @Published var isLoadingSelectedNodePreview = false
+    @Published var scrollToNodeId: String?
 
     @Published var favoriteNameDraft = ""
     @Published var selectedFavoriteName: String?
@@ -20,6 +21,7 @@ final class DebugTreeViewModel: ObservableObject {
     func resetForNewSnapshot(focusPath: [Int]) {
         selectedNodePath = focusPath
         expandedNodeIds = [""]
+        scrollToNodeId = nodeIdString(focusPath)
 
         selectedNodePreviewImage = nil
         selectedNodePreviewError = nil
@@ -35,6 +37,7 @@ final class DebugTreeViewModel: ObservableObject {
 
     func syncFromFocusPath(_ focusPath: [Int]) {
         selectedNodePath = focusPath
+        scrollToNodeId = nodeIdString(focusPath)
         syncFavoriteDraftForSelection()
     }
 
@@ -59,6 +62,7 @@ final class DebugTreeViewModel: ObservableObject {
             prefix.append(index)
             expandedNodeIds.insert(nodeIdString(prefix))
         }
+        scrollToNodeId = nodeIdString(path)
     }
 
     func saveFavoriteForSelection() {
@@ -168,4 +172,3 @@ final class DebugTreeViewModel: ObservableObject {
         }
     }
 }
-
