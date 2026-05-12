@@ -55,9 +55,9 @@ This repo currently contains a generated Xcode project for a macOS SwiftUI app w
 - `Sources/App/AppModel+Messaging.swift`: send-message flow and enqueue semantics
 - `Sources/App/AppModel+MCP.swift`: MCP JSON-RPC request handling and tool definitions
 - `Sources/App/WhatsAppMemoryStore.swift`: in-memory chat state and wait-for-message support
-- `Sources/Parser/WhatsAppInteractor.swift`: selecting conversations and sending messages in WhatsApp
-- `Sources/Parser/WhatsAppAccessibilityMap.swift`: heuristics for locating WhatsApp AX nodes
-- `Sources/Accessibility/AccessibilityService.swift`: low-level AX and keyboard event interactions
+- `Sources/WhatsAppBridge/Interaction/WhatsAppInteractor.swift`: selecting conversations and sending messages in WhatsApp
+- `Sources/WhatsAppBridge/Parsing/WhatsAppAccessibilityMap.swift`: heuristics for locating WhatsApp AX nodes
+- `Sources/WhatsAppBridge/Accessibility/AccessibilityService.swift`: low-level AX and keyboard event interactions
 
 ## Default Development Flow
 
