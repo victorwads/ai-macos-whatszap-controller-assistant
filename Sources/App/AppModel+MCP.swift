@@ -152,6 +152,14 @@ extension AppModel {
                 ]
             ),
             MCPToolDefinition(
+                name: "list_unread_chats",
+                description: "Lists mapped chats that have unread messages.",
+                inputSchema: [
+                    "type": .string("object"),
+                    "properties": .object([:])
+                ]
+            ),
+            MCPToolDefinition(
                 name: "get_recent_messages",
                 description: "Returns recent messages for a mapped chat.",
                 inputSchema: [
@@ -231,6 +239,11 @@ extension AppModel {
         switch call.name {
         case "list_chats":
             let chats = memoryStore.conversations.map(conversationJSONValue)
+            return .success(.object(["chats": .array(chats)]))
+        case "list_unread_chats":
+            let chats = memoryStore.conversations
+                .filter { $0.unreadCount > 0 }
+                .map(conversationJSONValue)
             return .success(.object(["chats": .array(chats)]))
         case "get_recent_messages":
             guard let chatId = call.arguments["chatId"]?.stringValue else {

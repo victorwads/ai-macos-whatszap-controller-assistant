@@ -6,6 +6,7 @@ extension AppModel {
     You can control WhatsApp through the MCP tools:
 
     - list_chats: List the available WhatsApp conversations.
+    - list_unread_chats: List only the conversations with unread messages.
     - get_recent_messages: Load the most recent messages from a specific chat.
     - send_message: Send a message to a specific WhatsApp chat.
     - wait_for_message: Wait for the next incoming message(s) and return any new messages received.
