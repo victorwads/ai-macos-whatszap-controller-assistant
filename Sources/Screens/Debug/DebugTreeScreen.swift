@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 private extension RawAXNode {
@@ -17,6 +18,10 @@ struct DebugTreeScreen: View {
     @State private var previewTask: Task<Void, Never>?
     @State private var previewCache: [String: NSImage] = [:]
     @State private var lastPreviewCacheKey: String?
+    @State private var favoriteNameDraft = ""
+    @State private var selectedFavoriteName: String?
+    @AppStorage("debugTreeFavoritesV1") private var favoritesStorage = ""
+    @State private var favorites: [String: [Int]] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -37,9 +42,11 @@ struct DebugTreeScreen: View {
                         VStack(alignment: .leading, spacing: 12) {
                             nodeSummary(focusedNode, title: "Focused Node")
                             Divider()
+                            nodeSummary(selectedNode, title: "Selected Node")
+                            Divider()
                             nodePreviewSection
                             Divider()
-                            nodeSummary(selectedNode, title: "Selected Node")
+                            favoritesSection
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -61,7 +68,15 @@ struct DebugTreeScreen: View {
                     previewCache = [:]
                     lastPreviewCacheKey = nil
                 }
-                .onChange(of: selectedNodePath) { _, _ in updateSelectedNodePreview(from: snapshot) }
+                .onChange(of: selectedNodePath) { _, _ in
+                    setPreviewLoadingImmediately(from: snapshot)
+                    updateSelectedNodePreview(from: snapshot)
+                    syncFavoriteDraftForSelection()
+                }
+                .onAppear {
+                    loadFavorites()
+                    syncFavoriteDraftForSelection()
+                }
             } else {
                 ContentUnavailableView(
                     "No snapshot loaded",
@@ -148,6 +163,69 @@ struct DebugTreeScreen: View {
                 Text("Select a node with a frame to preview what it represents.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            HStack(spacing: 8) {
+                TextField("Favorite name", text: $favoriteNameDraft)
+                    .textFieldStyle(.roundedBorder)
+
+                Button("Save") {
+                    saveFavoriteForSelection()
+                }
+                .disabled(selectedNodePath == nil || favoriteNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                Button("Unsave") {
+                    removeFavoriteForSelection()
+                }
+                .disabled(selectedFavoriteName == nil)
+            }
+
+            if let selectedFavoriteName {
+                Text("Saved as: \(selectedFavoriteName)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var favoritesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Favorites")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            if favorites.isEmpty {
+                Text("No favorites yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(favorites.keys.sorted(), id: \.self) { name in
+                    let path = favorites[name] ?? []
+                    Button {
+                        navigateToFavorite(path)
+                    } label: {
+                        HStack {
+                            Text(name)
+                                .font(.system(.caption, design: .monospaced))
+                            Spacer()
+                            Text(displayPath(path))
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Remove") {
+                            favorites.removeValue(forKey: name)
+                            persistFavorites()
+                            syncFavoriteDraftForSelection()
+                        }
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -288,27 +366,29 @@ struct DebugTreeScreen: View {
 
         selectedNodePreviewImage = nil
         selectedNodePreviewError = nil
-        isLoadingSelectedNodePreview = false
+        // keep any loading state set by `setPreviewLoadingImmediately`
 
         guard let selectedNodePath else { return }
         guard let node = snapshot.rootNode.node(at: selectedNodePath) else { return }
         guard let frame = node.frame else {
             selectedNodePreviewError = "No frame available for this node."
+            isLoadingSelectedNodePreview = false
             return
         }
 
         let cacheKey = "\(snapshot.capturedAt.timeIntervalSinceReferenceDate)|\(nodeIdString(selectedNodePath))"
         if lastPreviewCacheKey == cacheKey, selectedNodePreviewImage != nil || selectedNodePreviewError != nil {
+            isLoadingSelectedNodePreview = false
             return
         }
         lastPreviewCacheKey = cacheKey
 
         if let cached = previewCache[cacheKey] {
             selectedNodePreviewImage = cached
+            isLoadingSelectedNodePreview = false
             return
         }
 
-        isLoadingSelectedNodePreview = true
         let padding: CGFloat = 8
         let region = frame.insetBy(dx: -padding, dy: -padding)
 
@@ -328,6 +408,90 @@ struct DebugTreeScreen: View {
                 selectedNodePreviewImage = image
                 previewCache[cacheKey] = image
             }
+        }
+    }
+
+    private func setPreviewLoadingImmediately(from snapshot: WhatsAppSnapshot) {
+        guard let selectedNodePath else {
+            isLoadingSelectedNodePreview = false
+            return
+        }
+
+        let cacheKey = "\(snapshot.capturedAt.timeIntervalSinceReferenceDate)|\(nodeIdString(selectedNodePath))"
+        if previewCache[cacheKey] != nil {
+            isLoadingSelectedNodePreview = false
+            return
+        }
+
+        isLoadingSelectedNodePreview = true
+    }
+
+    private func loadFavorites() {
+        guard !favoritesStorage.isEmpty else {
+            favorites = [:]
+            return
+        }
+
+        do {
+            let data = Data(favoritesStorage.utf8)
+            favorites = try JSONDecoder().decode([String: [Int]].self, from: data)
+        } catch {
+            favorites = [:]
+        }
+    }
+
+    private func persistFavorites() {
+        do {
+            let data = try JSONEncoder().encode(favorites)
+            favoritesStorage = String(decoding: data, as: UTF8.self)
+        } catch {
+            // ignore
+        }
+    }
+
+    private func syncFavoriteDraftForSelection() {
+        guard let selectedNodePath else {
+            selectedFavoriteName = nil
+            return
+        }
+
+        if let existing = favorites.first(where: { $0.value == selectedNodePath })?.key {
+            selectedFavoriteName = existing
+            favoriteNameDraft = existing
+        } else {
+            selectedFavoriteName = nil
+            favoriteNameDraft = ""
+        }
+    }
+
+    private func saveFavoriteForSelection() {
+        guard let selectedNodePath else { return }
+        let name = favoriteNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+
+        favorites[name] = selectedNodePath
+        persistFavorites()
+        selectedFavoriteName = name
+    }
+
+    private func removeFavoriteForSelection() {
+        guard let selectedFavoriteName else { return }
+        favorites.removeValue(forKey: selectedFavoriteName)
+        persistFavorites()
+        syncFavoriteDraftForSelection()
+    }
+
+    private func navigateToFavorite(_ path: [Int]) {
+        revealPathInTree(path)
+        selectedNodePath = path
+    }
+
+    private func revealPathInTree(_ path: [Int]) {
+        expandedNodeIds.insert("")
+        var prefix: [Int] = []
+        for index in path {
+            prefix.append(index)
+            expandedNodeIds.insert(nodeIdString(prefix))
         }
     }
 }
