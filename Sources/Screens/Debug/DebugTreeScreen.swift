@@ -13,6 +13,8 @@ struct DebugTreeScreen: View {
     @State private var expandedNodeIds: Set<String> = [""] // root expanded by default
     @State private var selectedNodePreviewImage: NSImage?
     @State private var selectedNodePreviewError: String?
+    @State private var isLoadingSelectedNodePreview = false
+    @State private var previewTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -51,6 +53,9 @@ struct DebugTreeScreen: View {
                     expandedNodeIds = [""]
                     selectedNodePreviewImage = nil
                     selectedNodePreviewError = nil
+                    isLoadingSelectedNodePreview = false
+                    previewTask?.cancel()
+                    previewTask = nil
                 }
                 .onChange(of: selectedNodePath) { _, _ in updateSelectedNodePreview(from: snapshot) }
             } else {
@@ -114,7 +119,15 @@ struct DebugTreeScreen: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            if let selectedNodePreviewImage {
+            if isLoadingSelectedNodePreview {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Capturing preview…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let selectedNodePreviewImage {
                 GeometryReader { proxy in
                     Image(nsImage: selectedNodePreviewImage)
                         .resizable()
@@ -267,8 +280,11 @@ struct DebugTreeScreen: View {
     }
 
     private func updateSelectedNodePreview(from snapshot: WhatsAppSnapshot) {
+        previewTask?.cancel()
+
         selectedNodePreviewImage = nil
         selectedNodePreviewError = nil
+        isLoadingSelectedNodePreview = false
 
         guard let selectedNodePath else { return }
         guard let node = snapshot.rootNode.node(at: selectedNodePath) else { return }
@@ -277,14 +293,24 @@ struct DebugTreeScreen: View {
             return
         }
 
+        isLoadingSelectedNodePreview = true
         let padding: CGFloat = 8
         let region = frame.insetBy(dx: -padding, dy: -padding)
 
-        guard let cgImage = CGWindowListCreateImage(region, .optionOnScreenOnly, kCGNullWindowID, [.bestResolution]) else {
-            selectedNodePreviewError = "Could not capture screen preview for this node."
-            return
+        previewTask = Task.detached(priority: .userInitiated) { [region] in
+            let cgImage = CGWindowListCreateImage(region, .optionOnScreenOnly, kCGNullWindowID, [.bestResolution])
+            await MainActor.run {
+                guard !Task.isCancelled else { return }
+                isLoadingSelectedNodePreview = false
+                guard let cgImage else {
+                    selectedNodePreviewError = "Could not capture screen preview for this node."
+                    return
+                }
+                selectedNodePreviewImage = NSImage(
+                    cgImage: cgImage,
+                    size: NSSize(width: region.width, height: region.height)
+                )
+            }
         }
-
-        selectedNodePreviewImage = NSImage(cgImage: cgImage, size: NSSize(width: region.width, height: region.height))
     }
 }
