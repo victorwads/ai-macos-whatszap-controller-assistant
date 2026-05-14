@@ -1,6 +1,6 @@
 import Foundation
 
-enum AccessibilityActionPriority: Int, Comparable {
+enum AccessibilityActionPriority: Int, Comparable, Sendable {
     case background = 0
     case userInitiated = 10
     case critical = 100
@@ -42,7 +42,7 @@ actor AccessibilityActionScheduler {
         }
     }
 
-    func cancelAll(where shouldCancel: (AccessibilityActionPriority) -> Bool) {
+    func cancelAll(where shouldCancel: @Sendable (AccessibilityActionPriority) -> Bool) {
         queue.removeAll { shouldCancel($0.priority) }
     }
 
@@ -63,4 +63,3 @@ actor AccessibilityActionScheduler {
         }
     }
 }
-

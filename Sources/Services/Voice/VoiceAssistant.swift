@@ -1,7 +1,8 @@
 import AVFoundation
 import Speech
 
-actor VoiceAssistant {
+@MainActor
+final class VoiceAssistant {
     private let synthesizer = AVSpeechSynthesizer()
     private var audioEngine: AVAudioEngine?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -10,22 +11,18 @@ actor VoiceAssistant {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        await MainActor.run {
-            let utterance = AVSpeechUtterance(string: trimmed)
-            if let voiceIdentifier, let voice = AVSpeechSynthesisVoice(identifier: voiceIdentifier) {
-                utterance.voice = voice
-            } else {
-                utterance.voice = AVSpeechSynthesisVoice(language: language)
-            }
-            utterance.rate = min(max(rate, AVSpeechUtteranceMinimumSpeechRate), AVSpeechUtteranceMaximumSpeechRate)
-            self.synthesizer.speak(utterance)
+        let utterance = AVSpeechUtterance(string: trimmed)
+        if let voiceIdentifier, let voice = AVSpeechSynthesisVoice(identifier: voiceIdentifier) {
+            utterance.voice = voice
+        } else {
+            utterance.voice = AVSpeechSynthesisVoice(language: language)
         }
+        utterance.rate = min(max(rate, AVSpeechUtteranceMinimumSpeechRate), AVSpeechUtteranceMaximumSpeechRate)
+        synthesizer.speak(utterance)
     }
 
     func stopSpeaking(immediately: Bool = true) async {
-        await MainActor.run {
-            self.synthesizer.stopSpeaking(at: immediately ? .immediate : .word)
-        }
+        synthesizer.stopSpeaking(at: immediately ? .immediate : .word)
     }
 
     func askUser(prompt: String, language: String = "pt-BR", voiceIdentifier: String? = nil, recognitionLocaleIdentifier: String = "pt-BR", timeoutSeconds: Int = 20) async throws -> String {

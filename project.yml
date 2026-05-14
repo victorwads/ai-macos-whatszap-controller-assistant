@@ -8,6 +8,10 @@ settings:
     PRODUCT_BUNDLE_IDENTIFIER: dev.wads.AssistantMCPServer
     CURRENT_PROJECT_VERSION: 1
     MARKETING_VERSION: 0.1.0
+packages:
+  swift-sdk:
+    url: https://github.com/modelcontextprotocol/swift-sdk.git
+    from: 0.12.1
 schemes:
   AssistantMCPServer:
     build:
@@ -23,12 +27,15 @@ targets:
     platform: macOS
     sources:
       - path: Sources
+    dependencies:
+      - package: swift-sdk
+        product: MCP
     settings:
       base:
         INFOPLIST_FILE: Sources/Info.plist
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: 8484C7E493D0945D34C283EE731478158A12930A
         DEVELOPMENT_TEAM: RP7J7JX9L2
-        SWIFT_VERSION: 5.0
+        SWIFT_VERSION: 6.0
         ENABLE_HARDENED_RUNTIME: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
