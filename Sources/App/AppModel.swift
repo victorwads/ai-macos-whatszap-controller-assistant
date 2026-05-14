@@ -2,6 +2,7 @@ import AVFoundation
 import AppKit
 import Combine
 import Foundation
+import MCP
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -37,8 +38,10 @@ final class AppModel: ObservableObject {
     let parser = WhatsAppAppParser()
     let interactor = WhatsAppInteractor()
     let memoryStore = WhatsAppMemoryStore.shared
-    let mcpConnector: MCPServerTransporting = MCPHTTPServer()
+    let mcpConnector = MCPHTTPServer()
     let voiceAssistant = VoiceAssistant()
+    var mcpServer: Server?
+    var mcpTransport: StatelessHTTPServerTransport?
     var pollingTask: Task<Void, Never>?
     var permissionMonitorTask: Task<Void, Never>?
     var listSignaturesById: [String: String] = [:]
@@ -50,6 +53,7 @@ final class AppModel: ObservableObject {
     let speechLanguageDefaultsKey = "speechLanguage"
     let speechRateDefaultsKey = "speechRate"
     let recognitionLocaleIdentifierDefaultsKey = "recognitionLocaleIdentifier"
+    let chatListSignaturesDefaultsKey = "chatListSignatures.v1"
     var mcpRestartTask: Task<Void, Never>?
     var liveStatusTask: Task<Void, Never>?
 
@@ -57,6 +61,7 @@ final class AppModel: ObservableObject {
         loadBlockedConversationNames()
         loadAssistantInstructions()
         loadVoiceSettings()
+        loadChatListSignatures()
         bindMemoryStore()
         configureMCPConnector()
         refreshStatus()

@@ -119,9 +119,9 @@ Current implemented tools:
 
 ```text
 list_chats()
-get_recent_messages(chat_id, limit = 10)
-send_message(chat_id, text)
-wait_for_message(chat_id?, afterMessageId?, timeoutSeconds = 60)
+get_recent_messages(chatId, limit = 10)
+send_message(chatId, text)
+wait_for_message(chatId?, afterMessageId?, timeoutSeconds = 60)
 ```
 
 The MCP server also accepts lightweight protocol messages such as `initialize`, `ping`, and `notifications/initialized` for integration compatibility.
@@ -310,7 +310,7 @@ This log panel is important because WhatsApp may change Accessibility labels or 
 
 ```json
 {
-  "chat_id": "example",
+  "chatId": "example",
   "text": "message sent",
   "observed_status": "sent",
   "timestamp": "2026-05-11T15:00:00-03:00"
@@ -328,8 +328,12 @@ This project uses XcodeGen. Install path on this machine:
 Build from terminal:
 
 ```sh
-xcodebuild -project AssistantMCPServer.xcodeproj -scheme AssistantMCPServer -configuration Debug build
+./scripts/restart.sh
 ```
+
+This generates the Xcode project (via XcodeGen), builds with a stable `build/DerivedData` path, closes any running instance, and opens the newly built app.
+
+If you explicitly want to build without restarting/opening the app, you can still run `xcodebuild` manually.
 
 Run from Xcode first so macOS can prompt for Accessibility permission cleanly.
 

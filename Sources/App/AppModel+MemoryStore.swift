@@ -74,6 +74,7 @@ extension AppModel {
             listSignaturesById.removeValue(forKey: blockedID)
             memoryStore.removeConversation(id: blockedID)
         }
+        persistChatListSignatures()
 
         appendLog("Added \(conversationName) to blacklist.")
     }

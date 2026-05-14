@@ -1,11 +1,15 @@
 import Foundation
+import MCP
 
-protocol MCPServerTransporting: AnyObject {
+protocol MCPHTTPServerHosting: AnyObject {
     var isRunning: Bool { get }
     var boundPort: Int { get }
+
     func configure(host: String, port: Int)
-    func setRequestHandler(_ handler: @escaping @Sendable (MCPHTTPRequest) async -> Result<JSONValue, Error>)
     func setStateHandler(_ handler: @escaping @Sendable (MCPServerState) -> Void)
+    func setTransport(_ transport: StatelessHTTPServerTransport)
+
     func start() async throws
     func stop() async
 }
+

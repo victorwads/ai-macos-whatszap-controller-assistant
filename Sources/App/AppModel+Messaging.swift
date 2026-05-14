@@ -19,6 +19,46 @@ extension AppModel {
         await enqueueSendMessage(trimmedMessage, to: selectedChatState.chat.id, clearDraftOnSuccess: true)
     }
 
+    /// Sends a message while coordinating with the accessibility action scheduler.
+    /// This mirrors the UI send flow by canceling background refreshes and pausing polling to avoid races.
+    func sendMessageViaScheduler(_ text: String, to conversationId: String) async throws {
+        await accessibilityScheduler.cancelAll { $0 == .background }
+
+        let resumePollingAfterSend = isPolling
+        if resumePollingAfterSend {
+            stopPolling()
+        }
+
+        defer {
+            if resumePollingAfterSend {
+                startPolling()
+            }
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            Task { [weak self] in
+                guard let self else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+
+                await self.accessibilityScheduler.enqueue(priority: .critical) { [weak self] in
+                    guard let self else {
+                        continuation.resume(throwing: CancellationError())
+                        return
+                    }
+
+                    do {
+                        try await self.sendMessage(text, to: conversationId)
+                        continuation.resume(returning: ())
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+        }
+    }
+
     func sendMessage(_ text: String, to conversationId: String) async throws {
         guard prepareForWhatsAppInspection() else {
             throw MCPServerError.invalidRequest

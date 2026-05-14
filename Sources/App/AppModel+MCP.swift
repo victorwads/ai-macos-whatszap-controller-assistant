@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import MCP
 
 extension AppModel {
     var mcpServerAddress: String {
@@ -29,9 +30,26 @@ extension AppModel {
     func startMCPServer() async {
         mcpConnector.configure(host: mcpServerHost, port: mcpServerPort)
 
+        let server = Server(
+            name: "assistant-whatsapp",
+            version: "0.1.0",
+            capabilities: .init(
+                tools: .init(listChanged: true)
+            )
+        )
+
+        let transport = StatelessHTTPServerTransport()
+
+        await configureMCPHandlers(server)
+
         do {
+            try await server.start(transport: transport)
+            mcpServer = server
+            mcpTransport = transport
+            mcpConnector.setTransport(transport)
             try await mcpConnector.start()
         } catch {
+            await server.stop()
             mcpServerRunning = false
             mcpServerStatusDescription = "Failed: \(error.localizedDescription)"
             appendLog("Failed to start MCP server: \(error.localizedDescription)", level: .error)
@@ -43,6 +61,11 @@ extension AppModel {
         mcpRestartTask?.cancel()
         mcpRestartTask = nil
         await mcpConnector.stop()
+        if let server = mcpServer {
+            await server.stop()
+        }
+        mcpServer = nil
+        mcpTransport = nil
         mcpServerRunning = false
         mcpServerStatusDescription = "Stopped"
     }
@@ -53,14 +76,6 @@ extension AppModel {
     }
 
     func configureMCPConnector() {
-        mcpConnector.setRequestHandler { [weak self] request in
-            guard let self else {
-                return .failure(MCPServerError.invalidRequest)
-            }
-
-            return await self.handleMCPRequest(request)
-        }
-
         mcpConnector.setStateHandler { [weak self] state in
             Task { @MainActor [weak self] in
                 self?.handleMCPStateChange(state)
@@ -110,56 +125,66 @@ extension AppModel {
         }
     }
 
-    private func handleMCPRequest(_ request: MCPHTTPRequest) async -> Result<JSONValue, Error> {
-        switch request.method {
-        case "initialize":
-            return .success(.object([
-                "protocolVersion": .string("2024-11-05"),
-                "capabilities": .object([
-                    "tools": .object([:])
-                ]),
-                "serverInfo": .object([
-                    "name": .string("assistant-whatsapp"),
-                    "version": .string("0.1.0")
-                ])
-            ]))
-        case "ping", "notifications/initialized":
-            return .success(.object([:]))
-        case "tools/list":
-            return .success(.object(["tools": .array(toolDefinitions.map(\.jsonValue))]))
-        case "tools/call":
-            guard
-                let name = request.params["name"]?.stringValue,
-                case .object(let arguments)? = request.params["arguments"]
-            else {
-                return .failure(MCPServerError.invalidRequest)
-            }
+    private func configureMCPHandlers(_ server: Server) async {
+        let toolsSnapshot = toolDefinitions.map(makeMCPTool)
 
-            let result = await callTool(MCPToolCall(name: name, arguments: arguments))
+        await server.withMethodHandler(ListTools.self) { _ in
+            .init(tools: toolsSnapshot)
+        }
+
+        await server.withMethodHandler(CallTool.self) { [weak self] params in
+            guard let self else { return .init(content: [.text("Server unavailable")], isError: true) }
+
+            let arguments = Self.jsonArguments(from: params.arguments)
+            let result = await self.callTool(MCPToolCall(name: params.name, arguments: arguments))
             switch result {
             case .success(let value):
-                return .success(wrapToolResult(value))
+                return .init(content: [.text(Self.jsonText(from: value))], structuredContent: nil, isError: false)
             case .failure(let error):
-                return .failure(error)
+                return .init(content: [.text(error.localizedDescription)], structuredContent: nil, isError: true)
             }
-        default:
-            return .failure(MCPServerError.unsupportedMethod(request.method))
         }
     }
 
-    private func wrapToolResult(_ value: JSONValue) -> JSONValue {
-        let encoder = JSONEncoder()
-        let text = (try? encoder.encode(value)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+    private func makeMCPTool(_ definition: MCPToolDefinition) -> Tool {
+        let schema = JSONValue.object(definition.inputSchema)
+        return Tool(
+            name: definition.name,
+            title: nil,
+            description: definition.description,
+            inputSchema: Self.mcpValue(from: schema),
+            annotations: nil,
+            outputSchema: nil,
+            icons: nil,
+            _meta: nil
+        )
+    }
 
-        return .object([
-            "content": .array([
-                .object([
-                    "type": .string("text"),
-                    "text": .string(text)
-                ])
-            ]),
-            "isError": .bool(false)
-        ])
+    nonisolated private static func jsonArguments(from value: [String: Value]?) -> [String: JSONValue] {
+        guard let value else { return [:] }
+        guard
+            let data = try? JSONEncoder().encode(value),
+            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return [:]
+        }
+        return object.compactMapValues { JSONValue.from(any: $0) }
+    }
+
+    nonisolated private static func mcpValue(from value: JSONValue) -> Value {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        if
+            let data = try? encoder.encode(value),
+            let decoded = try? decoder.decode(Value.self, from: data)
+        {
+            return decoded
+        }
+        return .null
+    }
+
+    nonisolated private static func jsonText(from value: JSONValue) -> String {
+        (try? JSONEncoder().encode(value)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
     }
 
     private var toolDefinitions: [MCPToolDefinition] {
@@ -267,11 +292,15 @@ extension AppModel {
                 .map(conversationJSONValue)
             return .success(.object(["chats": .array(chats)]))
         case "get_recent_messages":
-            guard let chatId = call.arguments["chatId"]?.stringValue else {
+            guard let chatId = call.arguments["chatId"]?.stringValue ?? call.arguments["chat_id"]?.stringValue else {
                 return .failure(MCPServerError.missingParameter("chatId"))
             }
 
             let limit = max(1, call.arguments["limit"]?.intValue ?? 10)
+            if memoryStore.chatState(for: chatId) == nil {
+                await ensureChatLoaded(chatId: chatId, reason: "get_recent_messages")
+            }
+
             guard let chatState = memoryStore.chatState(for: chatId) else {
                 return .success(.object(["chat": .null, "messages": .array([])]))
             }
@@ -282,7 +311,7 @@ extension AppModel {
                 "messages": .array(messages)
             ]))
         case "send_message":
-            guard let chatId = call.arguments["chatId"]?.stringValue else {
+            guard let chatId = call.arguments["chatId"]?.stringValue ?? call.arguments["chat_id"]?.stringValue else {
                 return .failure(MCPServerError.missingParameter("chatId"))
             }
 
@@ -291,7 +320,7 @@ extension AppModel {
             }
 
             do {
-                try await sendMessage(text, to: chatId)
+                try await sendMessageViaScheduler(text, to: chatId)
                 return .success(.object([
                     "ok": .bool(true),
                     "chatId": .string(chatId)
@@ -302,7 +331,7 @@ extension AppModel {
         case "wait_for_message":
 //            let timeoutSeconds = max(1, call.arguments["timeoutSeconds"]?.intValue ?? 60)
             let result = await memoryStore.waitForNextMessage(
-                chatId: call.arguments["chatId"]?.stringValue,
+                chatId: call.arguments["chatId"]?.stringValue ?? call.arguments["chat_id"]?.stringValue,
                 afterMessageId: call.arguments["afterMessageId"]?.stringValue,
             )
 
