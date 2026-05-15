@@ -3,10 +3,16 @@ import AppKit
 import CoreGraphics
 
 final class AccessibilityService {
+    private let inputLock = InputLockService()
+
     /// Best-effort: bring WhatsApp to the foreground so subsequent CGEvent key injections
     /// are delivered to WhatsApp (not whatever app the user is currently typing in).
     func ensureWhatsAppActive() throws {
         try activateWhatsApp()
+    }
+
+    func lockUserInputForSend(seconds: Double) {
+        inputLock.lockFor(seconds: seconds)
     }
 
     func isTrusted(prompt: Bool) -> Bool {

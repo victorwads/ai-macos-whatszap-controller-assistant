@@ -45,19 +45,24 @@ struct SettingsScreen: View {
                 }
 
                 GroupBox("Accessibility") {
-                    HStack(spacing: 10) {
-                        Button {
-                            appModel.requestAccessibilityPermission()
-                        } label: {
-                            Label(appModel.waitingForAccessibilityRelaunch ? "Waiting Permission" : "Permission", systemImage: appModel.waitingForAccessibilityRelaunch ? "hourglass" : "lock.open")
-                        }
-                        .disabled(appModel.waitingForAccessibilityRelaunch)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 10) {
+                            Button {
+                                appModel.requestAccessibilityPermission()
+                            } label: {
+                                Label(appModel.waitingForAccessibilityRelaunch ? "Waiting Permission" : "Permission", systemImage: appModel.waitingForAccessibilityRelaunch ? "hourglass" : "lock.open")
+                            }
+                            .disabled(appModel.waitingForAccessibilityRelaunch)
 
-                        Button {
-                            appModel.dumpWhatsAppSnapshot()
-                        } label: {
-                            Label("Dump WhatsApp", systemImage: "doc.text.magnifyingglass")
+                            Button {
+                                appModel.dumpWhatsAppSnapshot()
+                            } label: {
+                                Label("Dump WhatsApp", systemImage: "doc.text.magnifyingglass")
+                            }
                         }
+
+                        Toggle("Experimental Input Lock (5s during send)", isOn: $appModel.experimentalInputLockEnabled)
+                            .toggleStyle(.switch)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

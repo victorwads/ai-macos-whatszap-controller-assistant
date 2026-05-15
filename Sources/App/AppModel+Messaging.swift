@@ -78,6 +78,10 @@ extension AppModel {
         }
 
         let snapshot = try await openConversationAndCapture(conversation)
+        if experimentalInputLockEnabled {
+            // Experimental: prevent the user from stealing focus mid-send.
+            accessibility.lockUserInputForSend(seconds: 5)
+        }
         try interactor.sendMessage(trimmedMessage, in: snapshot, using: accessibility)
         appendLog("Send action executed for \(conversation.name). Verifying delivery in UI…")
 

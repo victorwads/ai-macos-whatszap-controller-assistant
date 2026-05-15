@@ -33,6 +33,7 @@ final class AppModel: ObservableObject {
     @Published var speechLanguage = "pt-BR"
     @Published var speechRate: Float = AVSpeechUtteranceDefaultSpeechRate
     @Published var recognitionLocaleIdentifier = "pt-BR"
+    @Published var experimentalInputLockEnabled = false
 
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
@@ -54,6 +55,7 @@ final class AppModel: ObservableObject {
     let speechLanguageDefaultsKey = "speechLanguage"
     let speechRateDefaultsKey = "speechRate"
     let recognitionLocaleIdentifierDefaultsKey = "recognitionLocaleIdentifier"
+    let experimentalInputLockEnabledDefaultsKey = "experimentalInputLockEnabled"
     let chatListSignaturesDefaultsKey = "chatListSignatures.v1"
     var mcpRestartTask: Task<Void, Never>?
     var liveStatusTask: Task<Void, Never>?
@@ -63,6 +65,7 @@ final class AppModel: ObservableObject {
         loadBlockedConversationNames()
         loadAssistantInstructions()
         loadVoiceSettings()
+        loadExperimentalInputLockSetting()
         loadChatListSignatures()
         bindMemoryStore()
         configureMCPConnector()
