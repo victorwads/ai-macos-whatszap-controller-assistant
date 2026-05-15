@@ -38,6 +38,7 @@ final class AppModel: ObservableObject {
     @Published var experimentalInputLockEnabled = false
     @Published var mcpSendMessagePrefix = ""
     @Published var pendingClientAskCount = 0
+    @Published var microphoneAuthorized = true
 
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
@@ -70,6 +71,7 @@ final class AppModel: ObservableObject {
         loadChatListSignatures()
         bindMemoryStore()
         configureMCPConnector()
+        refreshMicrophoneAuthorization()
         Task { [weak self] in
             await self?.refreshPendingClientAskCount()
         }
@@ -87,5 +89,24 @@ final class AppModel: ObservableObject {
     func refreshPendingClientAskCount() async {
         let count = await clientVoiceEventsRepository.pendingAskCount()
         pendingClientAskCount = count
+    }
+
+    func refreshMicrophoneAuthorization() {
+        microphoneAuthorized = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    }
+
+    func requestMicrophonePermission() async {
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        switch status {
+        case .authorized:
+            microphoneAuthorized = true
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .audio)
+            microphoneAuthorized = granted
+        case .denied, .restricted:
+            microphoneAuthorized = false
+        @unknown default:
+            microphoneAuthorized = false
+        }
     }
 }

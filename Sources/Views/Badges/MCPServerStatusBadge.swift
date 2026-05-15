@@ -22,3 +22,22 @@ struct MCPServerStatusBadge: View {
         .help("MCP \(isRunning ? "Online" : "Offline")\n\(statusDescription)")
     }
 }
+
+#Preview("Online") {
+    MCPServerStatusBadge(
+        isRunning: true,
+        address: "http://localhost:8080/mcp",
+        statusDescription: "Ready"
+    )
+    .padding()
+}
+
+#Preview("Offline") {
+    MCPServerStatusBadge(
+        isRunning: false,
+        address: "http://localhost:8080/mcp",
+        statusDescription: "Stopped"
+    )
+    .padding()
+}
+

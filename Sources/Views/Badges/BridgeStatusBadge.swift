@@ -29,3 +29,30 @@ struct BridgeStatusBadge: View {
     }
 }
 
+#Preview("OK / Open") {
+    BridgeStatusBadge(
+        accessibilityTrusted: true,
+        whatsappRunning: true,
+        onRequestAccessibilityPermission: {}
+    )
+    .padding()
+}
+
+#Preview("OK / Closed") {
+    BridgeStatusBadge(
+        accessibilityTrusted: true,
+        whatsappRunning: false,
+        onRequestAccessibilityPermission: {}
+    )
+    .padding()
+}
+
+#Preview("Needs Accessibility") {
+    BridgeStatusBadge(
+        accessibilityTrusted: false,
+        whatsappRunning: false,
+        onRequestAccessibilityPermission: {}
+    )
+    .padding()
+}
+

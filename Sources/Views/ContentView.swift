@@ -122,24 +122,17 @@ struct ContentView: View {
 
             Spacer()
 
-            if appModel.pendingClientAskCount > 0 {
-                Button {
-                    selectedScreen = .clientVoice
-                } label: {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.yellow)
-                            .frame(width: 8, height: 8)
-                        Text("Client response pending (\(appModel.pendingClientAskCount))")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.yellow.opacity(0.12), in: Capsule())
+            PendingClientResponseBadge(
+                pendingCount: appModel.pendingClientAskCount,
+                onOpen: { selectedScreen = .clientVoice }
+            )
+
+            MicrophonePermissionBadge(
+                isAuthorized: appModel.microphoneAuthorized,
+                onRequestPermission: {
+                    Task { await appModel.requestMicrophonePermission() }
                 }
-                .buttonStyle(.plain)
-                .help("Open Client Voice")
-            }
+            )
 
             BridgeStatusBadge(
                 accessibilityTrusted: appModel.accessibilityTrusted,
