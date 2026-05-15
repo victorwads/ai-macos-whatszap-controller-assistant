@@ -17,6 +17,19 @@ struct WhatsAppInteractor {
         }
 
         try accessibility.sendText(text, to: composePath)
+        try triggerSend(in: snapshot, using: accessibility, composePath: composePath)
+    }
+
+    /// Attempts to send the currently composed message.
+    /// Keeps the "send" action separate so callers can retry Enter without retyping.
+    func triggerSend(in snapshot: WhatsAppSnapshot, using accessibility: AccessibilityService) throws {
+        guard let composePath = accessibilityMap.composeField(in: snapshot.rootNode)?.accessibilityPath else {
+            throw AccessibilityError.nodeNotFound
+        }
+        try triggerSend(in: snapshot, using: accessibility, composePath: composePath)
+    }
+
+    private func triggerSend(in snapshot: WhatsAppSnapshot, using accessibility: AccessibilityService, composePath: [Int]) throws {
         // Re-activate WhatsApp right before Enter. Without this, the user can steal focus mid-flight
         // and the Enter key event goes to the wrong app.
         try accessibility.ensureWhatsAppActive()

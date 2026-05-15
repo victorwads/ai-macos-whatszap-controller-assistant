@@ -88,16 +88,47 @@ extension AppModel {
                 accessibility.unlockUserInputAfterSend()
             }
         }
-        try interactor.sendMessage(trimmedMessage, in: snapshot, using: accessibility)
-        appendLog("Send action executed for \(conversation.name). Verifying delivery in UI…")
+        // Try the send action and confirm it reached the UI. If confirmation fails, retry "Enter"
+        // once (without retyping) because WhatsApp can occasionally miss the first key event.
+        var verification: SendVerificationResult?
+        var lastError: Error?
 
-        let verification = try await verifyRecentlySentMessage(
-            trimmedMessage,
-            expectedChatName: conversation.name,
-            timeoutSeconds: 12,
-            pollIntervalMs: 500,
-            messageWindow: 12
-        )
+        for attempt in 1...2 {
+            do {
+                if attempt == 1 {
+                    try interactor.sendMessage(trimmedMessage, in: snapshot, using: accessibility)
+                } else {
+                    appendLog("Send not confirmed; retrying Enter for \(conversation.name).", level: .warning)
+                    try interactor.triggerSend(in: snapshot, using: accessibility)
+                }
+
+                appendLog("Send action executed for \(conversation.name). Verifying delivery in UI…")
+                verification = try await verifyRecentlySentMessage(
+                    trimmedMessage,
+                    expectedChatName: conversation.name,
+                    timeoutSeconds: 12,
+                    pollIntervalMs: 500,
+                    messageWindow: 12
+                )
+                break
+            } catch let error as MCPServerError {
+                lastError = error
+                switch error {
+                case .sendNotConfirmed:
+                    // retry
+                    continue
+                default:
+                    throw error
+                }
+            } catch {
+                lastError = error
+                throw error
+            }
+        }
+
+        guard let verification else {
+            throw lastError ?? MCPServerError.sendNotConfirmed("unknown")
+        }
 
         writeDebugArtifacts(snapshot: verification.snapshot, screenState: verification.state, prefix: "send-\(conversation.id)")
         memoryStore.replaceConversations(verification.state.conversations)

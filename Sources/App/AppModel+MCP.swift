@@ -365,10 +365,13 @@ extension AppModel {
                 return .failure(error)
             }
         case "wait_for_message":
+            // The MCP client/tooling may enforce its own call timeout (~120s). To preserve the
+            // "no timeout" semantics at the workflow level, we long-poll in chunks and let the
+            // caller re-issue wait_for_message until it returns a message.
             let result = await memoryStore.waitForNextMessage(
                 chatId: call.arguments["chatId"]?.stringValue ?? call.arguments["chat_id"]?.stringValue,
                 afterMessageId: call.arguments["afterMessageId"]?.stringValue,
-                timeoutSeconds: nil
+                timeoutSeconds: 110
             )
 
             if let result {
