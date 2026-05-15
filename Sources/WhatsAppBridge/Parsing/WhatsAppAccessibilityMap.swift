@@ -3,7 +3,8 @@ import Foundation
 struct WhatsAppAccessibilityMap {
     let chatListPath = "0.0.0.2.1.0"
     let messageListPath = "0.0.0.4.1.0"
-    let composePath = "0.0.0.4.1.2"
+    // This path can shift between WhatsApp versions; keep it as a fast path only.
+    let composePath = "0.0.0.4.1.3"
 
     func chatList(in root: RawAXNode) -> RawAXNode? {
         if let anchored = root.node(at: chatListPath),
@@ -35,7 +36,12 @@ struct WhatsAppAccessibilityMap {
         }
 
         return root.firstDescendant { node in
-            node.role == "AXTextArea" && node.nodeDescription?.contains("Compose message") == true
+            guard node.role == "AXTextArea" else { return false }
+            let desc = node.nodeDescription?.normalizedAXText.lowercased() ?? ""
+            if desc.contains("compose message") { return true }
+            if desc.contains("mensagem") { return true } // Portuguese variants
+            if desc.contains("message") { return true }
+            return false
         }
     }
 

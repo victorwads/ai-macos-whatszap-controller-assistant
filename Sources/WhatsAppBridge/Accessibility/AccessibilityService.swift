@@ -117,6 +117,28 @@ final class AccessibilityService {
         }
     }
 
+    func readValue(at path: [Int]) throws -> String? {
+        guard let app = findWhatsAppApplication() else {
+            throw AccessibilityError.whatsAppNotRunning
+        }
+
+        let root = AXUIElementCreateApplication(app.processIdentifier)
+        guard let element = element(at: path, from: root) else {
+            throw AccessibilityError.nodeNotFound
+        }
+
+        var raw: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &raw)
+        guard result == .success else {
+            throw AccessibilityError.actionFailed(result.rawValue)
+        }
+
+        if let text = raw as? String {
+            return text
+        }
+        return raw.map { String(describing: $0) }
+    }
+
     func focusNode(at path: [Int]) throws {
         guard let app = findWhatsAppApplication() else {
             throw AccessibilityError.whatsAppNotRunning
@@ -158,14 +180,10 @@ final class AccessibilityService {
         try? pressNodeAXOnly(at: path)
         try focusNode(at: path)
         Thread.sleep(forTimeInterval: 0.05)
-        // Do not use AXValue here. WhatsApp often won't fire input/change events when the value is set
-        // programmatically, which can prevent the Send button from appearing and Enter from sending.
-        // Prefer "real" input via keyboard events (or pasteboard) to trigger the app's event pipeline.
-        do {
-            try clearFocusedTextField()
-        } catch {
-            // If we can't reliably clear, continue anyway; typing/paste will still usually work.
-        }
+        // Clear via AXValue to avoid global Cmd+A hitting the wrong app if focus is stolen.
+        // (We still use real input events for the actual text to trigger WhatsApp's change pipeline.)
+        try? setValue("", at: path)
+        Thread.sleep(forTimeInterval: 0.02)
 
         do {
             try typeTextViaUnicodeEvents(text)
@@ -215,14 +233,6 @@ final class AccessibilityService {
             Thread.sleep(forTimeInterval: 0.05)
         }
         return app.isActive
-    }
-
-    private func clearFocusedTextField() throws {
-        // Cmd+A then Delete is the most robust "clear" across editable fields.
-        try activateWhatsApp()
-        try pressKey(keyCode: 0, flags: .maskCommand) // 'A'
-        try pressKey(keyCode: 51, flags: []) // Delete/Backspace
-        Thread.sleep(forTimeInterval: 0.05)
     }
 
     private func pasteTextViaClipboard(_ text: String) throws {
