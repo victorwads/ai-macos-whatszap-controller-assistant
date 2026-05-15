@@ -158,6 +158,98 @@ final class VoiceAssistant {
             return false
         }
     }
+
+    func listenWithAutoSubmit(
+        recognitionLocaleIdentifier: String = "pt-BR",
+        onPartial: @escaping @MainActor (String) -> Void
+    ) async throws -> String {
+        let speechAuthorized = try await ensureSpeechAuthorization()
+        guard speechAuthorized else {
+            throw VoiceAssistantError.speechNotAuthorized
+        }
+
+        let micAuthorized = await ensureMicrophoneAuthorization()
+        guard micAuthorized else {
+            throw VoiceAssistantError.microphoneNotAuthorized
+        }
+
+        @MainActor
+        final class ListenState {
+            var hasResolved = false
+            var lastPartial = ""
+            var debounceTask: Task<Void, Never>?
+        }
+
+        let state = ListenState()
+
+        return try await withCheckedThrowingContinuation { continuation in
+            do {
+                let locale = Locale(identifier: recognitionLocaleIdentifier)
+                guard let recognizer = SFSpeechRecognizer(locale: locale) else {
+                    throw VoiceAssistantError.speechRecognizerUnavailable
+                }
+
+                let engine = AVAudioEngine()
+                let request = SFSpeechAudioBufferRecognitionRequest()
+                request.shouldReportPartialResults = true
+
+                let inputNode = engine.inputNode
+                let recordingFormat = inputNode.outputFormat(forBus: 0)
+                inputNode.removeTap(onBus: 0)
+                inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+                    request.append(buffer)
+                }
+
+                engine.prepare()
+                try engine.start()
+
+                self.audioEngine = engine
+
+                @MainActor
+                func scheduleDebounce() {
+                    state.debounceTask?.cancel()
+                    state.debounceTask = Task { @MainActor [weak self] in
+                        try? await Task.sleep(for: .seconds(1.0))
+                        guard !Task.isCancelled else { return }
+                        self?.stopListening()
+                        guard !state.hasResolved else { return }
+                        state.hasResolved = true
+                        let value = state.lastPartial.trimmingCharacters(in: .whitespacesAndNewlines)
+                        continuation.resume(returning: value)
+                    }
+                }
+
+                self.recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
+                    Task { @MainActor in
+                        if let error {
+                            state.debounceTask?.cancel()
+                            self?.stopListening()
+                            guard !state.hasResolved else { return }
+                            state.hasResolved = true
+                            continuation.resume(throwing: error)
+                            return
+                        }
+
+                        guard let result else { return }
+                        let partial = result.bestTranscription.formattedString
+                        state.lastPartial = partial
+                        onPartial(partial)
+                        scheduleDebounce()
+
+                        if result.isFinal {
+                            state.debounceTask?.cancel()
+                            self?.stopListening()
+                            guard !state.hasResolved else { return }
+                            state.hasResolved = true
+                            continuation.resume(returning: partial.trimmingCharacters(in: .whitespacesAndNewlines))
+                        }
+                    }
+                }
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
 }
 
 enum VoiceAssistantError: LocalizedError {

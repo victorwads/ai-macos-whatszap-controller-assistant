@@ -292,6 +292,10 @@ struct SettingsScreen: View {
                                 .frame(width: 44, alignment: .trailing)
                         }
 
+                        Toggle("Hands-free Client Voice window", isOn: $appModel.handsFreeClientVoiceEnabled)
+                            .toggleStyle(.switch)
+                            .help("When enabled (default), opening a pending client ask will bring a floating window to the front and start voice recognition with auto-submit.")
+
                         Button {
                             let text = appModel.assistantInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !text.isEmpty else { return }

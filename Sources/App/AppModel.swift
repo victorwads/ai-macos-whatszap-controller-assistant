@@ -39,6 +39,7 @@ final class AppModel: ObservableObject {
     @Published var mcpSendMessagePrefix = ""
     @Published var pendingClientAskCount = 0
     @Published var microphoneAuthorized = true
+    @Published var handsFreeClientVoiceEnabled = true
 
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
@@ -61,11 +62,13 @@ final class AppModel: ObservableObject {
     let memoriesRepository = MemoriesRepository.shared
     let subjectsRepository = SubjectsRepository.shared
     let clientVoiceEventsRepository = ClientVoiceEventsRepository.shared
+    private let handsFreeClientVoiceSettingsRepository = HandsFreeClientVoiceSettingsRepository.shared
 
     init() {
         loadConversationAccessSettings()
         loadAssistantInstructions()
         loadVoiceSettings()
+        loadHandsFreeClientVoiceSetting()
         loadExperimentalInputLockSetting()
         loadMCPSendMessagePrefixSetting()
         loadChatListSignatures()
@@ -89,6 +92,31 @@ final class AppModel: ObservableObject {
     func refreshPendingClientAskCount() async {
         let count = await clientVoiceEventsRepository.pendingAskCount()
         pendingClientAskCount = count
+        await maybeShowHandsFreeClientVoiceWindow()
+    }
+
+    private func loadHandsFreeClientVoiceSetting() {
+        handsFreeClientVoiceEnabled = handsFreeClientVoiceSettingsRepository.load(defaultValue: true)
+
+        $handsFreeClientVoiceEnabled
+            .dropFirst()
+            .sink { [weak self] value in
+                self?.handsFreeClientVoiceSettingsRepository.save(value)
+                Task { [weak self] in
+                    await self?.maybeShowHandsFreeClientVoiceWindow()
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func maybeShowHandsFreeClientVoiceWindow() async {
+        guard handsFreeClientVoiceEnabled else { return }
+        let pending = await clientVoiceEventsRepository.list(limit: 50)
+            .filter { $0.kind == .ask && $0.askStatus == .pending }
+        guard let latest = pending.first else { return }
+        let prompt = latest.prompt ?? ""
+        guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        ClientVoiceHandsFreeWindowController.shared.show(appModel: self, askId: latest.id, prompt: prompt)
     }
 
     func refreshMicrophoneAuthorization() {
