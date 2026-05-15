@@ -97,6 +97,23 @@ final class WhatsAppMemoryStore: ObservableObject {
         }
     }
 
+    /// Clears all cached chat histories (messages + per-chat state) while preserving the current conversation list.
+    /// Does not touch allow/deny lists (stored elsewhere) or the parsed conversation summaries.
+    func clearAllCachedChatHistories() {
+        chatStatesById.removeAll(keepingCapacity: false)
+
+        if let selectedConversationId, let conversation = conversations.first(where: { $0.id == selectedConversationId }) {
+            selectedChatState = ChatState(
+                chat: conversation,
+                messages: [],
+                composeFocused: false,
+                canSendText: false
+            )
+        } else {
+            selectedChatState = nil
+        }
+    }
+
     func chatState(for id: String) -> ChatState? {
         chatStatesById[id]
     }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ConversationsScreen: View {
     @EnvironmentObject private var appModel: AppModel
+    @State private var showingClearHistoryConfirmation = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -11,9 +12,26 @@ struct ConversationsScreen: View {
                         Text("Conversations")
                             .font(.title3.weight(.semibold))
                         Spacer()
+                        Button("Clear history", role: .destructive) {
+                            showingClearHistoryConfirmation = true
+                        }
+                        .controlSize(.small)
+                        .help("Clears all cached message history for every conversation (keeps the conversation list and allow/deny lists).")
+
                         Text("\(appModel.conversations.count)")
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
+                    }
+                    .confirmationDialog(
+                        "Clear all conversation history?",
+                        isPresented: $showingClearHistoryConfirmation,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Clear history", role: .destructive) {
+                            appModel.clearConversationHistoryCache()
+                        }
+                    } message: {
+                        Text("This removes all cached messages and per-chat state from the integration. It won’t change the WhatsApp app itself, the conversation list, or your allow/deny lists.")
                     }
 
                     ForEach(appModel.conversations) { conversation in

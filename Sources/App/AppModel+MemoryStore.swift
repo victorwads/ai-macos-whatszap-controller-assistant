@@ -6,6 +6,10 @@ extension AppModel {
         memoryStore.selectConversation(id: conversation.id)
     }
 
+    func clearConversationHistoryCache() {
+        memoryStore.clearAllCachedChatHistories()
+    }
+
     func bindMemoryStore() {
         memoryStore.$conversations
             .sink { [weak self] in
