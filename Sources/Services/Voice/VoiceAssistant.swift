@@ -25,13 +25,16 @@ final class VoiceAssistant {
         synthesizer.stopSpeaking(at: immediately ? .immediate : .word)
     }
 
-    func askUser(prompt: String, language: String = "pt-BR", voiceIdentifier: String? = nil, recognitionLocaleIdentifier: String = "pt-BR", timeoutSeconds: Int = 20) async throws -> String {
+    func askUser(prompt: String, language: String = "pt-BR", voiceIdentifier: String? = nil, recognitionLocaleIdentifier: String = "pt-BR", timeoutSeconds: Int? = nil) async throws -> String {
         await speak(prompt, language: language, voiceIdentifier: voiceIdentifier)
         return try await listen(recognitionLocaleIdentifier: recognitionLocaleIdentifier, timeoutSeconds: timeoutSeconds)
     }
 
-    func listen(recognitionLocaleIdentifier: String = "pt-BR", timeoutSeconds: Int = 20) async throws -> String {
-        let timeoutSeconds = max(3, min(timeoutSeconds, 120))
+    func listen(recognitionLocaleIdentifier: String = "pt-BR", timeoutSeconds: Int? = nil) async throws -> String {
+        let normalizedTimeoutSeconds = timeoutSeconds.flatMap { value -> Int? in
+            guard value > 0 else { return nil }
+            return max(3, min(value, 120))
+        }
 
         let speechAuthorized = try await ensureSpeechAuthorization()
         guard speechAuthorized else {
@@ -68,19 +71,24 @@ final class VoiceAssistant {
 
                 var hasResolved = false
 
-                let timeoutTask = Task { [weak self] in
-                    try? await Task.sleep(for: .seconds(timeoutSeconds))
-                    guard !Task.isCancelled else { return }
-                    await self?.stopListening()
-                    if !hasResolved {
-                        hasResolved = true
-                        continuation.resume(throwing: VoiceAssistantError.timedOut)
+                let timeoutTask: Task<Void, Never>?
+                if let normalizedTimeoutSeconds {
+                    timeoutTask = Task { [weak self] in
+                        try? await Task.sleep(for: .seconds(normalizedTimeoutSeconds))
+                        guard !Task.isCancelled else { return }
+                        await self?.stopListening()
+                        if !hasResolved {
+                            hasResolved = true
+                            continuation.resume(throwing: VoiceAssistantError.timedOut)
+                        }
                     }
+                } else {
+                    timeoutTask = nil
                 }
 
                 self.recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
                     if let error {
-                        timeoutTask.cancel()
+                        timeoutTask?.cancel()
                         Task { await self?.stopListening() }
                         guard !hasResolved else { return }
                         hasResolved = true
@@ -91,7 +99,7 @@ final class VoiceAssistant {
                     guard let result else { return }
 
                     if result.isFinal {
-                        timeoutTask.cancel()
+                        timeoutTask?.cancel()
                         Task { await self?.stopListening() }
                         guard !hasResolved else { return }
                         hasResolved = true

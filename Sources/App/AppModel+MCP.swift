@@ -597,7 +597,11 @@ extension AppModel {
             let language = call.arguments["language"]?.stringValue ?? speechLanguage
             let voiceIdentifier = call.arguments["voiceIdentifier"]?.stringValue ?? speechVoiceIdentifier
             let recognitionLocaleIdentifier = call.arguments["recognitionLocale"]?.stringValue ?? recognitionLocaleIdentifier
-            let timeoutSeconds = max(3, call.arguments["timeoutSeconds"]?.intValue ?? 20)
+            let timeoutSecondsRaw = call.arguments["timeoutSeconds"]?.intValue
+            let timeoutSeconds: Int? = {
+                guard let timeoutSecondsRaw else { return nil }
+                return timeoutSecondsRaw > 0 ? timeoutSecondsRaw : nil
+            }()
             let askEvent = await clientVoiceEventsRepository.appendAsk(prompt: prompt)
             await refreshPendingClientAskCount()
 
