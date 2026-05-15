@@ -230,9 +230,13 @@ extension AppModel {
                     "type": .string("object"),
                     "properties": .object([
                         "chatId": .object(["type": .string("string")]),
-                        "text": .object(["type": .string("string")])
+                        "text": .object(["type": .string("string")]),
+                        "messages": .object([
+                            "type": .string("array"),
+                            "items": .object(["type": .string("string")])
+                        ])
                     ]),
-                    "required": .array([.string("chatId"), .string("text")])
+                    "required": .array([.string("chatId")])
                 ]
             ),
             MCPToolDefinition(
@@ -327,16 +331,36 @@ extension AppModel {
                 return .failure(MCPServerError.missingParameter("chatId"))
             }
 
-            guard let text = call.arguments["text"]?.stringValue else {
+            let singleText = call.arguments["text"]?.stringValue
+            let messageArray: [String]? = {
+                guard case .array(let values) = call.arguments["messages"] else { return nil }
+                return values.compactMap { $0.stringValue }
+            }()
+
+            let texts: [String]
+            if let messageArray, !messageArray.isEmpty {
+                texts = messageArray
+            } else if let singleText {
+                texts = [singleText]
+            } else {
                 return .failure(MCPServerError.missingParameter("text"))
             }
 
             do {
-                let prefixedText = applyMCPSendMessagePrefixIfNeeded(text)
-                try await sendMessageViaScheduler(prefixedText, to: chatId)
+                var results: [JSONValue] = []
+                for text in texts {
+                    let prefixedText = applyMCPSendMessagePrefixIfNeeded(text)
+                    try await sendMessageViaScheduler(prefixedText, to: chatId)
+                    results.append(.object([
+                        "ok": .bool(true),
+                        "chatId": .string(chatId),
+                        "text": .string(text)
+                    ]))
+                }
                 return .success(.object([
                     "ok": .bool(true),
-                    "chatId": .string(chatId)
+                    "chatId": .string(chatId),
+                    "results": .array(results)
                 ]))
             } catch {
                 return .failure(error)

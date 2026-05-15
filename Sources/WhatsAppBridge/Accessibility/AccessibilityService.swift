@@ -180,20 +180,53 @@ final class AccessibilityService {
             throw AccessibilityError.whatsAppNotRunning
         }
 
-        if !app.isActive {
-            app.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
-            Thread.sleep(forTimeInterval: 0.15)
+        guard !app.isActive else { return }
+
+        // NSRunningApplication activation is more reliable from the main thread.
+        let activateBlock = {
+            _ = app.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+            app.unhide()
         }
+        if Thread.isMainThread {
+            activateBlock()
+        } else {
+            DispatchQueue.main.sync(execute: activateBlock)
+        }
+
+        if waitForActive(app, timeoutSeconds: 1.2) {
+            return
+        }
+
+        // Fallback: AppleScript activation can succeed in situations where NSRunningApplication.activate
+        // does not (Spaces/Focus/other foreground constraints).
+        let script = NSAppleScript(source: "tell application \"WhatsApp\" to activate")
+        var error: NSDictionary?
+        _ = script?.executeAndReturnError(&error)
+        if waitForActive(app, timeoutSeconds: 1.2) {
+            return
+        }
+
+        throw AccessibilityError.actionFailed(-2)
+    }
+
+    private func waitForActive(_ app: NSRunningApplication, timeoutSeconds: Double) -> Bool {
+        let deadline = Date().addingTimeInterval(timeoutSeconds)
+        while !app.isActive, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        return app.isActive
     }
 
     private func clearFocusedTextField() throws {
         // Cmd+A then Delete is the most robust "clear" across editable fields.
+        try activateWhatsApp()
         try pressKey(keyCode: 0, flags: .maskCommand) // 'A'
         try pressKey(keyCode: 51, flags: []) // Delete/Backspace
         Thread.sleep(forTimeInterval: 0.05)
     }
 
     private func pasteTextViaClipboard(_ text: String) throws {
+        try activateWhatsApp()
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
@@ -205,6 +238,7 @@ final class AccessibilityService {
     }
 
     private func typeTextViaUnicodeEvents(_ text: String) throws {
+        try activateWhatsApp()
         guard let source = CGEventSource(stateID: .combinedSessionState) else {
             throw AccessibilityError.actionFailed(-1)
         }
@@ -237,6 +271,7 @@ final class AccessibilityService {
     }
 
     private func pressKey(keyCode: CGKeyCode, flags: CGEventFlags) throws {
+        try activateWhatsApp()
         guard let source = CGEventSource(stateID: .combinedSessionState) else {
             throw AccessibilityError.actionFailed(-1)
         }

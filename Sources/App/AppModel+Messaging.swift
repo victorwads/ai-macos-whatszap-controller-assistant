@@ -172,6 +172,19 @@ extension AppModel {
                 continue
             }
 
+            // Primary confirmation: conversation list preview updates even when the message list is scrolled
+            // or WhatsApp doesn't expose the newest message rows in AX yet.
+            if let convo = state.conversations.first(where: { $0.name == expectedChatName }) {
+                if convo.lastMessageDirection == .outgoing,
+                   let preview = convo.lastMessagePreview
+                {
+                    let normalizedPreview = normalizeMessageTextForVerification(preview)
+                    if normalizedPreview == normalizedTarget { return SendVerificationResult(snapshot: snapshot, state: state) }
+                    if normalizedPreview.count >= 6 && normalizedTarget.contains(normalizedPreview) { return SendVerificationResult(snapshot: snapshot, state: state) }
+                    if normalizedTarget.count >= 6 && normalizedPreview.contains(normalizedTarget) { return SendVerificationResult(snapshot: snapshot, state: state) }
+                }
+            }
+
             let recent = Array(state.messages.suffix(messageWindow))
             if recent.contains(where: { message in
                 guard message.direction == .outgoing else { return false }
@@ -189,6 +202,7 @@ extension AppModel {
         }
 
         let selectedName = lastState?.selectedChatName ?? "nil"
+        let lastPreview = lastState?.conversations.first(where: { $0.name == expectedChatName })?.lastMessagePreview ?? "nil"
         let recentDump = (lastState?.messages.suffix(messageWindow) ?? []).map { message in
             let dir = message.direction.rawValue
             let txt = message.text ?? "nil"
@@ -201,7 +215,7 @@ extension AppModel {
         }
 
         throw MCPServerError.sendNotConfirmed(
-            "chat='\(expectedChatName)' selected='\(selectedName)' attempts=\(attempts) recent=[\(recentDump)]"
+            "chat='\(expectedChatName)' selected='\(selectedName)' attempts=\(attempts) lastPreview='\(lastPreview)' recent=[\(recentDump)]"
         )
     }
 
