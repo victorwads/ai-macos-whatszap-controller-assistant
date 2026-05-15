@@ -71,6 +71,38 @@ struct MCPServerCallEntry: Identifiable, Sendable, Codable, Hashable {
     }
 }
 
+extension MCPServerCallEntry {
+    var mcpMethod: String? {
+        guard let object = requestBodyJSONObject else { return nil }
+        return object["method"] as? String
+    }
+
+    var mcpIdDescription: String? {
+        guard let object = requestBodyJSONObject else { return nil }
+        let id = object["id"]
+        switch id {
+        case let number as NSNumber:
+            return number.stringValue
+        case let string as String:
+            return string
+        default:
+            return nil
+        }
+    }
+
+    var mcpToolName: String? {
+        guard mcpMethod == "tools/call" else { return nil }
+        guard let params = requestBodyJSONObject?["params"] as? [String: Any] else { return nil }
+        return params["name"] as? String
+    }
+
+    private var requestBodyJSONObject: [String: Any]? {
+        guard !requestBody.isEmpty else { return nil }
+        guard let json = try? JSONSerialization.jsonObject(with: requestBody) else { return nil }
+        return json as? [String: Any]
+    }
+}
+
 enum MCPServerState: Equatable {
     case starting(port: Int)
     case ready(port: Int)

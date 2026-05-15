@@ -10,6 +10,29 @@ struct ServerLogsScreen: View {
     @State private var includePost = true
     @State private var includeSuccess = true
     @State private var includeError = true
+    @State private var mcpFilter: MCPMethodFilter = .all
+    @State private var toolFilter: ToolFilter = .all
+
+    private enum MCPMethodFilter: String, CaseIterable, Identifiable {
+        case all = "All"
+        case toolsCall = "Tool Calls"
+        case toolsList = "Tool Lists"
+        case other = "Other"
+
+        var id: String { rawValue }
+    }
+
+    private enum ToolFilter: Hashable {
+        case all
+        case tool(name: String)
+
+        var label: String {
+            switch self {
+            case .all: "All tools"
+            case .tool(let name): name
+            }
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,12 +45,14 @@ struct ServerLogsScreen: View {
 
             HSplitView {
                 leftPane
-                    .frame(minWidth: 360, idealWidth: 520, maxWidth: 900)
+                    .frame(minWidth: 280, idealWidth: 560, maxWidth: 980)
+                    .layoutPriority(1)
 
                 rightPane
-                    .frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var header: some View {
@@ -59,6 +84,48 @@ struct ServerLogsScreen: View {
                     .frame(height: 18)
                 filterToggle("Success", isOn: $includeSuccess)
                 filterToggle("Error", isOn: $includeError)
+                Divider()
+                    .frame(height: 18)
+
+                Picker("MCP", selection: $mcpFilter) {
+                    ForEach(MCPMethodFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .controlSize(.small)
+                .frame(maxWidth: 420)
+
+                Menu {
+                    Button {
+                        toolFilter = .all
+                    } label: {
+                        if case .all = toolFilter {
+                            Label("All tools", systemImage: "checkmark")
+                        } else {
+                            Text("All tools")
+                        }
+                    }
+
+                    Divider()
+
+                    ForEach(availableToolNames, id: \.self) { name in
+                        Button {
+                            toolFilter = .tool(name: name)
+                        } label: {
+                            if case .tool(let selected) = toolFilter, selected == name {
+                                Label(name, systemImage: "checkmark")
+                            } else {
+                                Text(name)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(toolFilter.label, systemImage: "line.3.horizontal.decrease.circle")
+                        .labelStyle(.titleAndIcon)
+                }
+                .disabled(availableToolNames.isEmpty)
+
                 Spacer()
             }
         }
@@ -77,6 +144,16 @@ struct ServerLogsScreen: View {
         }
         .focused($listFocused)
         .onChange(of: query) { _, _ in
+            if let selectedId, !filteredCalls.contains(where: { $0.id == selectedId }) {
+                self.selectedId = nil
+            }
+        }
+        .onChange(of: mcpFilter) { _, _ in
+            if let selectedId, !filteredCalls.contains(where: { $0.id == selectedId }) {
+                self.selectedId = nil
+            }
+        }
+        .onChange(of: toolFilter) { _, _ in
             if let selectedId, !filteredCalls.contains(where: { $0.id == selectedId }) {
                 self.selectedId = nil
             }
@@ -119,6 +196,26 @@ struct ServerLogsScreen: View {
                     || (status >= 400 && includeError)
             }
 
+            let mcpMatches: Bool
+            switch mcpFilter {
+            case .all:
+                mcpMatches = true
+            case .toolsCall:
+                mcpMatches = entry.mcpMethod == "tools/call"
+            case .toolsList:
+                mcpMatches = entry.mcpMethod == "tools/list"
+            case .other:
+                mcpMatches = entry.mcpMethod != nil && entry.mcpMethod != "tools/call" && entry.mcpMethod != "tools/list"
+            }
+
+            let toolMatches: Bool
+            switch toolFilter {
+            case .all:
+                toolMatches = true
+            case .tool(let name):
+                toolMatches = entry.mcpToolName == name
+            }
+
             let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
             let searchMatches: Bool
             if trimmed.isEmpty {
@@ -129,9 +226,11 @@ struct ServerLogsScreen: View {
                     entry.requestPath.lowercased().contains(needle)
                         || method.lowercased().contains(needle)
                         || String(status).contains(needle)
+                        || (entry.mcpMethod?.lowercased().contains(needle) ?? false)
+                        || (entry.mcpToolName?.lowercased().contains(needle) ?? false)
             }
 
-            return methodMatches && statusMatches && searchMatches
+            return methodMatches && statusMatches && mcpMatches && toolMatches && searchMatches
         }
         .sorted { $0.timestamp > $1.timestamp }
     }
@@ -151,6 +250,20 @@ struct ServerLogsScreen: View {
             Text(entry.requestMethod)
                 .font(.system(.caption2, design: .monospaced).weight(.semibold))
                 .frame(width: 52, alignment: .leading)
+
+            Text(entry.mcpMethod ?? "—")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(entry.mcpMethod == nil ? .secondary : .primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(width: 120, alignment: .leading)
+
+            Text(entry.mcpToolName ?? "—")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(entry.mcpToolName == nil ? .secondary : .primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(width: 180, alignment: .leading)
 
             Text(entry.requestPath)
                 .lineLimit(1)
@@ -217,6 +330,8 @@ struct ServerLogsScreen: View {
                 Text("\(entry.requestMethod) \(entry.requestPath)")
                     .font(.system(.headline, design: .monospaced))
                     .textSelection(.enabled)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
 
                 Spacer()
 
@@ -238,6 +353,18 @@ struct ServerLogsScreen: View {
                     .foregroundStyle(.secondary)
                     .font(.system(.caption, design: .monospaced))
 
+                if let mcpMethod = entry.mcpMethod {
+                    Text(mcpMethod)
+                        .foregroundStyle(.secondary)
+                        .font(.system(.caption, design: .monospaced).weight(.semibold))
+                }
+
+                if let toolName = entry.mcpToolName {
+                    Text(toolName)
+                        .foregroundStyle(.secondary)
+                        .font(.system(.caption, design: .monospaced))
+                }
+
                 Text("status \(entry.responseStatusCode)")
                     .foregroundStyle(statusColor(entry.responseStatusCode))
                     .font(.system(.caption, design: .monospaced).weight(.semibold))
@@ -247,6 +374,10 @@ struct ServerLogsScreen: View {
                     .font(.system(.caption, design: .monospaced))
             }
         }
+    }
+
+    private var availableToolNames: [String] {
+        Set(appModel.serverCalls.compactMap(\.mcpToolName)).sorted()
     }
 
     private func headerTable(_ headers: [String: String]) -> some View {
