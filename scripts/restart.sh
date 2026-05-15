@@ -7,6 +7,26 @@ SCHEME="AssistantMCPServer"
 PROJECT_FILE="$REPO_DIR/AssistantMCPServer.xcodeproj"
 DERIVED_DATA_DIR="$REPO_DIR/build/DerivedData"
 APP_PATH="$DERIVED_DATA_DIR/Build/Products/Debug/AssistantMCPServer.app"
+DEVELOPMENT_TEAM_FILE="$REPO_DIR/build/development_team.txt"
+
+# Ensure Xcode/SwiftPM caches live inside the repo (helps in sandboxed runs).
+BUILD_HOME_DIR="$REPO_DIR/build/home"
+BUILD_TMP_DIR="/private/tmp/AssistantMCPServer"
+mkdir -p "$BUILD_HOME_DIR" "$BUILD_TMP_DIR"
+export HOME="$BUILD_HOME_DIR"
+export XDG_CACHE_HOME="$BUILD_HOME_DIR/.cache"
+export TMPDIR="$BUILD_TMP_DIR"
+
+TEAM_ID="${DEVELOPMENT_TEAM:-}"
+if [ -z "${TEAM_ID}" ] && [ -f "$DEVELOPMENT_TEAM_FILE" ]; then
+  TEAM_ID="$(cat "$DEVELOPMENT_TEAM_FILE" | tr -d '[:space:]')"
+fi
+if [ -z "${TEAM_ID}" ]; then
+  echo "Warning: DEVELOPMENT_TEAM not set."
+  echo "  - Set env var:   export DEVELOPMENT_TEAM=XXXXXXXXXX"
+  echo "  - Or create:     $DEVELOPMENT_TEAM_FILE"
+  echo "Automatic signing may fail until a team is provided."
+fi
 
 echo "Closing running AssistantMCPServer instances..."
 osascript -e 'tell application "AssistantMCPServer" to quit' >/dev/null 2>&1 || true
@@ -33,12 +53,22 @@ cd "$REPO_DIR"
 xcodegen generate
 
 echo "Building $SCHEME..."
-xcodebuild \
-  -project "$PROJECT_FILE" \
-  -scheme "$SCHEME" \
-  -configuration Debug \
-  -derivedDataPath "$DERIVED_DATA_DIR" \
-  build
+if [ -n "${TEAM_ID}" ]; then
+  xcodebuild \
+    -project "$PROJECT_FILE" \
+    -scheme "$SCHEME" \
+    -configuration Debug \
+    -derivedDataPath "$DERIVED_DATA_DIR" \
+    DEVELOPMENT_TEAM="$TEAM_ID" \
+    build
+else
+  xcodebuild \
+    -project "$PROJECT_FILE" \
+    -scheme "$SCHEME" \
+    -configuration Debug \
+    -derivedDataPath "$DERIVED_DATA_DIR" \
+    build
+fi
 
 echo "Opening built app..."
 open -n "$APP_PATH"
