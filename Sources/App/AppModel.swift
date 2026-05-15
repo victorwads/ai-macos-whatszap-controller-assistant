@@ -52,23 +52,10 @@ final class AppModel: ObservableObject {
     var listSignaturesById: [String: String] = [:]
     let debugDirectory = URL(fileURLWithPath: "/tmp/AssistantMCPServer", isDirectory: true)
     var cancellables: Set<AnyCancellable> = []
-    // Legacy: used for migration to denyConversationNamesDefaultsKey.
-    let blockedConversationDefaultsKey = "blockedConversationNames"
-    let conversationAccessModeDefaultsKey = "conversationAccessMode.v1"
-    let denyConversationNamesDefaultsKey = "denyConversationNames.v1"
-    let allowConversationNamesDefaultsKey = "allowConversationNames.v1"
-    let assistantInstructionsDefaultsKey = "assistantInstructions"
-    let speechVoiceIdentifierDefaultsKey = "speechVoiceIdentifier"
-    let speechLanguageDefaultsKey = "speechLanguage"
-    let speechRateDefaultsKey = "speechRate"
-    let recognitionLocaleIdentifierDefaultsKey = "recognitionLocaleIdentifier"
-    let experimentalInputLockEnabledDefaultsKey = "experimentalInputLockEnabled"
-    let mcpSendMessagePrefixDefaultsKey = "mcpSendMessagePrefix"
-    let chatListSignaturesDefaultsKey = "chatListSignatures.v1"
     var mcpRestartTask: Task<Void, Never>?
     var liveStatusTask: Task<Void, Never>?
-    let serverCallStore = ServerCallStore()
-    let nicknamesRepository = NicknamesRepository()
+    let serverCallsRepository = ServerCallsRepository.shared
+    let nicknamesRepository = NicknamesRepository.shared
 
     init() {
         loadConversationAccessSettings()

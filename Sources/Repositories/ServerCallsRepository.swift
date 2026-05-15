@@ -1,6 +1,8 @@
 import Foundation
 
-actor ServerCallStore {
+actor ServerCallsRepository {
+    static let shared = ServerCallsRepository()
+
     private let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]

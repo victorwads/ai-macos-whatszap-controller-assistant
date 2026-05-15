@@ -22,7 +22,7 @@ extension AppModel {
     """
 
     func loadAssistantInstructions() {
-        assistantInstructions = UserDefaults.standard.string(forKey: assistantInstructionsDefaultsKey) ?? Self.defaultAssistantInstructions
+        assistantInstructions = AssistantInstructionsRepository.shared.load(defaultValue: Self.defaultAssistantInstructions)
         bindAssistantInstructionsPersistence()
     }
 
@@ -31,7 +31,7 @@ extension AppModel {
             .dropFirst()
             .sink { [weak self] value in
                 guard let self else { return }
-                UserDefaults.standard.set(value, forKey: self.assistantInstructionsDefaultsKey)
+                AssistantInstructionsRepository.shared.save(value)
             }
             .store(in: &cancellables)
     }

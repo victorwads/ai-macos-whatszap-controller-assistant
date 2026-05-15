@@ -9,7 +9,7 @@ final class DebugTreeViewModel: ObservableObject {
 
     @Published var favoriteNameDraft = ""
     @Published var selectedFavoriteName: String?
-    @Published var favorites: [String: [Int]] = DebugTreeFavoritesStore.load()
+    @Published var favorites: [String: [Int]] = DebugTreeFavoritesRepository.shared.load()
 
     func resetForNewSnapshot(focusPath: [Int]) {
         selectedNodePath = focusPath
@@ -53,14 +53,14 @@ final class DebugTreeViewModel: ObservableObject {
         guard !name.isEmpty else { return }
 
         favorites[name] = selectedNodePath
-        DebugTreeFavoritesStore.save(favorites)
+        DebugTreeFavoritesRepository.shared.save(favorites)
         selectedFavoriteName = name
     }
 
     func removeFavoriteForSelection() {
         guard let selectedFavoriteName else { return }
         favorites.removeValue(forKey: selectedFavoriteName)
-        DebugTreeFavoritesStore.save(favorites)
+        DebugTreeFavoritesRepository.shared.save(favorites)
         syncFavoriteDraftForSelection()
     }
 

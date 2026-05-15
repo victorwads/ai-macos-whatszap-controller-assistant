@@ -37,13 +37,11 @@ extension AppModel {
     }
 
     func loadVoiceSettings() {
-        speechVoiceIdentifier = UserDefaults.standard.string(forKey: speechVoiceIdentifierDefaultsKey)
-        speechLanguage = UserDefaults.standard.string(forKey: speechLanguageDefaultsKey) ?? "pt-BR"
-        recognitionLocaleIdentifier = UserDefaults.standard.string(forKey: recognitionLocaleIdentifierDefaultsKey) ?? "pt-BR"
-
-        if let number = UserDefaults.standard.object(forKey: speechRateDefaultsKey) as? NSNumber {
-            speechRate = number.floatValue
-        }
+        let loaded = VoiceSettingsRepository.shared.load()
+        speechVoiceIdentifier = loaded.voiceIdentifier
+        speechLanguage = loaded.language
+        speechRate = loaded.rate
+        recognitionLocaleIdentifier = loaded.recognitionLocale
 
         bindVoiceSettingsPersistence()
     }
@@ -53,7 +51,12 @@ extension AppModel {
             .dropFirst()
             .sink { [weak self] value in
                 guard let self else { return }
-                UserDefaults.standard.set(value, forKey: self.speechVoiceIdentifierDefaultsKey)
+                VoiceSettingsRepository.shared.save(
+                    voiceIdentifier: value,
+                    language: self.speechLanguage,
+                    rate: self.speechRate,
+                    recognitionLocale: self.recognitionLocaleIdentifier
+                )
             }
             .store(in: &cancellables)
 
@@ -61,7 +64,12 @@ extension AppModel {
             .dropFirst()
             .sink { [weak self] value in
                 guard let self else { return }
-                UserDefaults.standard.set(value, forKey: self.speechLanguageDefaultsKey)
+                VoiceSettingsRepository.shared.save(
+                    voiceIdentifier: self.speechVoiceIdentifier,
+                    language: value,
+                    rate: self.speechRate,
+                    recognitionLocale: self.recognitionLocaleIdentifier
+                )
 
                 if let voice = self.voiceForIdentifier(self.speechVoiceIdentifier),
                    voice.language != value {
@@ -74,7 +82,12 @@ extension AppModel {
             .dropFirst()
             .sink { [weak self] value in
                 guard let self else { return }
-                UserDefaults.standard.set(NSNumber(value: value), forKey: self.speechRateDefaultsKey)
+                VoiceSettingsRepository.shared.save(
+                    voiceIdentifier: self.speechVoiceIdentifier,
+                    language: self.speechLanguage,
+                    rate: value,
+                    recognitionLocale: self.recognitionLocaleIdentifier
+                )
             }
             .store(in: &cancellables)
 
@@ -82,7 +95,12 @@ extension AppModel {
             .dropFirst()
             .sink { [weak self] value in
                 guard let self else { return }
-                UserDefaults.standard.set(value, forKey: self.recognitionLocaleIdentifierDefaultsKey)
+                VoiceSettingsRepository.shared.save(
+                    voiceIdentifier: self.speechVoiceIdentifier,
+                    language: self.speechLanguage,
+                    rate: self.speechRate,
+                    recognitionLocale: value
+                )
             }
             .store(in: &cancellables)
     }

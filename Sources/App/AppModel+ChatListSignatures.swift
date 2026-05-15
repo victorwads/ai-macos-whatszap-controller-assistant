@@ -2,15 +2,13 @@ import Foundation
 
 extension AppModel {
     func loadChatListSignatures() {
-        guard let data = UserDefaults.standard.data(forKey: chatListSignaturesDefaultsKey) else {
-            listSignaturesById = [:]
-            return
-        }
-
         do {
-            let payload = try JSONDecoder().decode(PersistedChatListSignatures.self, from: data)
-            listSignaturesById = payload.signaturesByChatId
-            appendLog("Loaded \(listSignaturesById.count) persisted chat signatures.")
+            if let payload = try ChatListSignaturesRepository.shared.load() {
+                listSignaturesById = payload.signaturesByChatId
+                appendLog("Loaded \(listSignaturesById.count) persisted chat signatures.")
+            } else {
+                listSignaturesById = [:]
+            }
         } catch {
             listSignaturesById = [:]
             appendLog("Failed to decode persisted chat signatures; clearing cache. (\(error.localizedDescription))", level: .warning)
@@ -25,11 +23,9 @@ extension AppModel {
         )
 
         do {
-            let data = try JSONEncoder().encode(payload)
-            UserDefaults.standard.set(data, forKey: chatListSignaturesDefaultsKey)
+            try ChatListSignaturesRepository.shared.save(payload)
         } catch {
             appendLog("Failed to persist chat signatures: \(error.localizedDescription)", level: .warning)
         }
     }
 }
-

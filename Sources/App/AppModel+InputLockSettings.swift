@@ -3,15 +3,14 @@ import Foundation
 
 extension AppModel {
     func loadExperimentalInputLockSetting() {
-        experimentalInputLockEnabled = UserDefaults.standard.bool(forKey: experimentalInputLockEnabledDefaultsKey)
+        experimentalInputLockEnabled = InputLockSettingsRepository.shared.load()
 
         $experimentalInputLockEnabled
             .dropFirst()
             .sink { [weak self] value in
-                guard let self else { return }
-                UserDefaults.standard.set(value, forKey: self.experimentalInputLockEnabledDefaultsKey)
+                guard self != nil else { return }
+                InputLockSettingsRepository.shared.save(value)
             }
             .store(in: &cancellables)
     }
 }
-

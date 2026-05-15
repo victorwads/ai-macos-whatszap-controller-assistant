@@ -19,8 +19,8 @@ struct ContentView: View {
             switch self {
             case .conversations: "Conversations"
             case .nicknames: "Nicknames"
-            case .integrationLogs: "Integration Logs"
-            case .integrationDebug: "Integration Debug"
+            case .integrationLogs: "Logs"
+            case .integrationDebug: "Debug"
             case .serverLogs: "Server Logs"
             case .settings: "Settings"
             }
@@ -99,7 +99,7 @@ struct ContentView: View {
 
     private var headerBar: some View {
         HStack(spacing: 10) {
-            Text((selectedScreen ?? .conversations).title)
+            Text(selectedScreen.title)
                 .font(.title3.weight(.semibold))
 
             Spacer()

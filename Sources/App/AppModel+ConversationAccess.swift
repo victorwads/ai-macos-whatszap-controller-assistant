@@ -3,33 +3,20 @@ import Foundation
 
 extension AppModel {
     func loadConversationAccessSettings() {
-        let defaults = UserDefaults.standard
-
-        if let raw = defaults.string(forKey: conversationAccessModeDefaultsKey),
-           let mode = ConversationAccessMode(rawValue: raw)
-        {
-            conversationAccessMode = mode
-        } else {
-            conversationAccessMode = .allowAllExceptDeny
-        }
-
-        if let deny = defaults.stringArray(forKey: denyConversationNamesDefaultsKey) {
-            denyConversationNames = deny.sorted()
-        } else if let legacy = defaults.stringArray(forKey: blockedConversationDefaultsKey) {
-            // Migrate legacy "blockedConversationNames" to deny list.
-            denyConversationNames = legacy.sorted()
-            defaults.set(denyConversationNames, forKey: denyConversationNamesDefaultsKey)
-        } else {
-            denyConversationNames = []
-        }
-
-        allowConversationNames = (defaults.stringArray(forKey: allowConversationNamesDefaultsKey) ?? []).sorted()
+        let loaded = ConversationAccessRepository.shared.load()
+        conversationAccessMode = loaded.mode
+        denyConversationNames = loaded.deny
+        allowConversationNames = loaded.allow
 
         $conversationAccessMode
             .dropFirst()
             .sink { [weak self] value in
                 guard let self else { return }
-                defaults.set(value.rawValue, forKey: self.conversationAccessModeDefaultsKey)
+                ConversationAccessRepository.shared.save(
+                    mode: value,
+                    deny: self.denyConversationNames,
+                    allow: self.allowConversationNames
+                )
             }
             .store(in: &cancellables)
 
@@ -37,7 +24,11 @@ extension AppModel {
             .dropFirst()
             .sink { [weak self] value in
                 guard let self else { return }
-                defaults.set(value, forKey: self.denyConversationNamesDefaultsKey)
+                ConversationAccessRepository.shared.save(
+                    mode: self.conversationAccessMode,
+                    deny: value,
+                    allow: self.allowConversationNames
+                )
             }
             .store(in: &cancellables)
 
@@ -45,7 +36,11 @@ extension AppModel {
             .dropFirst()
             .sink { [weak self] value in
                 guard let self else { return }
-                defaults.set(value, forKey: self.allowConversationNamesDefaultsKey)
+                ConversationAccessRepository.shared.save(
+                    mode: self.conversationAccessMode,
+                    deny: self.denyConversationNames,
+                    allow: value
+                )
             }
             .store(in: &cancellables)
     }
@@ -111,4 +106,3 @@ extension AppModel {
         appendLog("Added \(conversationName) to allow list.")
     }
 }
-

@@ -11,19 +11,19 @@ extension AppModel {
         }
 
         Task {
-            await serverCallStore.append(entry)
+            await serverCallsRepository.append(entry)
         }
     }
 
     func clearServerCalls() {
         serverCalls.removeAll()
         Task {
-            await serverCallStore.clear()
+            await serverCallsRepository.clear()
         }
     }
 
     func loadPersistedServerCalls() async {
-        let loaded = await serverCallStore.loadAll()
+        let loaded = await serverCallsRepository.loadAll()
         serverCalls = Array(loaded.suffix(serverCallsInMemoryLimit))
     }
 }

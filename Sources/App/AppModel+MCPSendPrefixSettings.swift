@@ -3,13 +3,13 @@ import Foundation
 
 extension AppModel {
     func loadMCPSendMessagePrefixSetting() {
-        mcpSendMessagePrefix = UserDefaults.standard.string(forKey: mcpSendMessagePrefixDefaultsKey) ?? ""
+        mcpSendMessagePrefix = MCPSendPrefixRepository.shared.load()
 
         $mcpSendMessagePrefix
             .dropFirst()
             .sink { [weak self] value in
-                guard let self else { return }
-                UserDefaults.standard.set(value, forKey: self.mcpSendMessagePrefixDefaultsKey)
+                guard self != nil else { return }
+                MCPSendPrefixRepository.shared.save(value)
             }
             .store(in: &cancellables)
     }
@@ -20,4 +20,3 @@ extension AppModel {
         return prefix + text
     }
 }
-

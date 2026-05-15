@@ -263,7 +263,7 @@ struct DebugTreeScreen: View {
                     .contextMenu {
                         Button("Remove") {
                             model.favorites.removeValue(forKey: name)
-                            DebugTreeFavoritesStore.save(model.favorites)
+                            DebugTreeFavoritesRepository.shared.save(model.favorites)
                             model.syncFavoriteDraftForSelection()
                         }
                     }

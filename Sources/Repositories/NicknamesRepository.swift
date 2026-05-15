@@ -15,6 +15,8 @@ enum NicknamesRepositoryError: LocalizedError {
 }
 
 actor NicknamesRepository {
+    static let shared = NicknamesRepository()
+
     struct SaveResult: Codable, Equatable {
         let entry: NicknameEntry
         let created: Bool
