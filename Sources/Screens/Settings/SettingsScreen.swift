@@ -63,6 +63,7 @@ struct SettingsScreen: View {
 
                         Toggle("Experimental Input Lock (5s during send)", isOn: $appModel.experimentalInputLockEnabled)
                             .toggleStyle(.switch)
+                            .help("Experimental. This can temporarily block mouse and keyboard input during message send (up to 5 seconds).")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
