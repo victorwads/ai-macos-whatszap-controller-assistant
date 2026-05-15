@@ -31,3 +31,13 @@ struct StatusBadge: View {
     }
 }
 
+#Preview("Online") {
+    StatusBadge(title: "OK", isOnline: true, subtitle: nil, help: "All good")
+        .padding()
+}
+
+#Preview("Offline + subtitle") {
+    StatusBadge(title: "Microphone", isOnline: false, subtitle: "Needs permission", help: "Click to open settings")
+        .padding()
+}
+

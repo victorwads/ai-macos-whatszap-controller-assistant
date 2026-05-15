@@ -133,8 +133,24 @@ final class AppModel: ObservableObject {
             microphoneAuthorized = granted
         case .denied, .restricted:
             microphoneAuthorized = false
+            openMicrophonePrivacySettings()
         @unknown default:
             microphoneAuthorized = false
+        }
+        refreshMicrophoneAuthorization()
+    }
+
+    private func openMicrophonePrivacySettings() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone"
+        ]
+
+        for raw in candidates {
+            guard let url = URL(string: raw) else { continue }
+            if NSWorkspace.shared.open(url) {
+                return
+            }
         }
     }
 }

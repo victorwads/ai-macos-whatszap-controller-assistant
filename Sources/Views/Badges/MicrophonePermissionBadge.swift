@@ -14,7 +14,7 @@ struct MicrophonePermissionBadge: View {
                 StatusBadge(
                     title: "Microphone",
                     isOnline: false,
-                    subtitle: "Click to grant",
+                    subtitle: nil,
                     help: "Microphone permission is required for voice answers. Click to request it."
                 )
             }
@@ -32,4 +32,3 @@ struct MicrophonePermissionBadge: View {
     MicrophonePermissionBadge(isAuthorized: false, onRequestPermission: {})
         .padding()
 }
-
