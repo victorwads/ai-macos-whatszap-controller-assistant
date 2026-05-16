@@ -16,10 +16,6 @@ struct MCPServerContext {
 }
 
 extension MCPServerContext {
-    func assistantInstructions() -> String {
-        runtime.assistantInstructions()
-    }
-
     func speechLanguage() -> String {
         runtime.speechLanguage()
     }

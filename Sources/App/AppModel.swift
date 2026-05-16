@@ -33,7 +33,6 @@ final class AppModel: ObservableObject {
     @Published var conversationAccessMode: ConversationAccessMode = .allowAllExceptDeny
     @Published var denyConversationNames: [String] = []
     @Published var allowConversationNames: [String] = []
-    @Published var assistantInstructions = ""
     @Published var pendingClientAskCount = 0
     @Published var microphoneAuthorized = true
     @Published var speechRecognitionAuthorized = true
@@ -112,7 +111,6 @@ final class AppModel: ObservableObject {
         switch startupMode {
         case .live:
             loadConversationAccessSettings()
-            loadAssistantInstructions()
             loadChatListSignatures()
             loadChatHistory()
             bindMemoryStore()
@@ -140,7 +138,6 @@ final class AppModel: ObservableObject {
 
         case .preview:
             // Keep previews deterministic and side-effect free.
-            assistantInstructions = Self.defaultAssistantInstructions
             runtimeDescription = "Xcode Preview"
             lastRefreshDescription = "Preview"
             microphoneAuthorized = true

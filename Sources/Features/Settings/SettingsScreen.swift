@@ -8,7 +8,6 @@ struct SettingsScreen: View {
     @ObservedObject var handsFreeClientVoiceSettings: HandsFreeClientVoiceSettingsModel
     @ObservedObject var inputLockSettings: InputLockSettingsModel
     @ObservedObject var mcpSendPrefixSettings: MCPSendPrefixSettingsModel
-    @State private var isReadingInstructions = false
 
     var body: some View {
         ScrollView {
@@ -210,27 +209,6 @@ struct SettingsScreen: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        Divider()
-
-                        HStack {
-                            Text("Instructions")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-
-                            Spacer()
-
-                            Button("Reset to Default") {
-                                appModel.assistantInstructions = AppModel.defaultAssistantInstructions
-                            }
-                        }
-
-                        TextEditor(text: $appModel.assistantInstructions)
-                            .font(.system(.caption, design: .monospaced))
-                            .frame(minHeight: 220)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.secondary.opacity(0.2))
-                            )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -354,36 +332,6 @@ struct SettingsScreen: View {
                                 Label("Force Mic Capture (1s)", systemImage: "mic.and.signal.meter")
                             }
                             .help("Starts an AVAudioEngine input tap for ~1 second to force macOS to register/request Microphone access.")
-                        }
-
-                        Button {
-                            let text = appModel.assistantInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
-                            guard !text.isEmpty else { return }
-                            if isReadingInstructions {
-                                isReadingInstructions = false
-                                Task {
-                                    await appModel.voiceAssistant.stopSpeaking()
-                                }
-                            } else {
-                                isReadingInstructions = true
-                                Task {
-                                    do {
-                                        try await appModel.voiceAssistant.speak(
-                                            text,
-                                            language: voiceSettings.speechLanguage,
-                                            voiceIdentifier: voiceSettings.speechVoiceIdentifier,
-                                            rate: voiceSettings.speechRate
-                                        )
-                                    } catch {
-                                        // Intentionally ignore here; the button resets after the task completes.
-                                    }
-                                    await MainActor.run {
-                                        isReadingInstructions = false
-                                    }
-                                }
-                            }
-                        } label: {
-                            Label(isReadingInstructions ? "Stop" : "Test (Read Instructions)", systemImage: isReadingInstructions ? "stop.fill" : "speaker.wave.2.fill")
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

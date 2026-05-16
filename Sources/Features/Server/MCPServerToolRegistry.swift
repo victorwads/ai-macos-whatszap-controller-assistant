@@ -10,7 +10,6 @@ enum MCPServerToolRegistry {
         SendMessageTool.self,
         WaitForMessageTool.self,
         WaitNextEventTool.self,
-        GetInstructionsTool.self,
         SpeakToClientTool.self,
         AskToClientTool.self,
         CreateMemoryTool.self,
