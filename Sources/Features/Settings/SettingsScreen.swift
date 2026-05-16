@@ -65,12 +65,6 @@ struct SettingsScreen: View {
                                 Label(appModel.waitingForAccessibilityRelaunch ? "Waiting Permission" : "Permission", systemImage: appModel.waitingForAccessibilityRelaunch ? "hourglass" : "lock.open")
                             }
                             .disabled(appModel.waitingForAccessibilityRelaunch)
-
-                            Button {
-                                appModel.dumpWhatsAppSnapshot()
-                            } label: {
-                                Label("Dump WhatsApp", systemImage: "doc.text.magnifyingglass")
-                            }
                         }
 
                         HStack(spacing: 8) {

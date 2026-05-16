@@ -6,8 +6,8 @@ private extension RawAXNode {
 }
 
 struct DebugTreeScreen: View {
-    @EnvironmentObject private var appModel: AppModel
-    @StateObject private var model = DebugTreeViewModel()
+    private let accessibility: AccessibilityService
+    @StateObject private var model: DebugTreeViewModel
     @StateObject private var previewModel = DebugTreePreviewModel()
     @State private var attributeQuery = ""
     @State private var captureNameDraft = ""
@@ -15,14 +15,20 @@ struct DebugTreeScreen: View {
     @State private var selectedAttributesError: String?
     @State private var isLoadingAttributes = false
 
+    init(captureService: WhatsAppDebugCaptureService, accessibility: AccessibilityService) {
+        self.accessibility = accessibility
+        _model = StateObject(wrappedValue: DebugTreeViewModel(captureService: captureService, accessibility: accessibility))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider()
 
-            if let snapshot = appModel.debugSnapshot {
-                let focusedNode = snapshot.rootNode.node(at: appModel.debugNodePath) ?? snapshot.rootNode
-                let selectedNode = snapshot.rootNode.node(at: model.selectedNodePath ?? []) ?? focusedNode
+            if let snapshot = model.snapshot {
+                let focusedNode = snapshot.rootNode.node(at: model.focusPath) ?? snapshot.rootNode
+                let selectedPath = model.selectedNodePath ?? model.focusPath
+                let selectedNode = snapshot.rootNode.node(at: selectedPath) ?? focusedNode
 
                 HSplitView {
                     ScrollViewReader { proxy in
@@ -44,7 +50,7 @@ struct DebugTreeScreen: View {
                             Divider()
                             nodeSummary(selectedNode, title: "Selected Node")
                             Divider()
-                            attributesSection(path: model.selectedNodePath ?? appModel.debugNodePath)
+                            attributesSection(path: selectedPath)
                             Divider()
                             previewSection
                             Divider()
@@ -56,23 +62,19 @@ struct DebugTreeScreen: View {
                     .frame(minWidth: 320, maxWidth: .infinity)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onChange(of: appModel.debugNodePath) { _, newValue in
-                    model.syncFromFocusPath(newValue)
-                }
                 .task(id: snapshot.capturedAt) {
-                    model.resetForNewSnapshot(focusPath: appModel.debugNodePath)
+                    model.resetForNewSnapshot(snapshot: snapshot)
                     previewModel.reset()
+                    loadAttributes(for: model.selectedNodePath ?? model.focusPath)
                 }
                 .onChange(of: model.selectedNodePath) { _, _ in
-                    // Update cheap details immediately; preview updates independently.
-                    model.handleSelectionChanged(snapshot: snapshot)
+                    model.handleSelectionChanged()
                     previewModel.setLoadingImmediatelyIfNeeded(snapshot: snapshot, path: model.selectedNodePath)
                     previewModel.update(snapshot: snapshot, path: model.selectedNodePath)
-
-                    loadAttributes()
+                    loadAttributes(for: model.selectedNodePath ?? model.focusPath)
                 }
-                .task(id: model.nodeIdString(model.selectedNodePath ?? appModel.debugNodePath)) {
-                    loadAttributes()
+                .task(id: model.nodeIdString(model.selectedNodePath ?? model.focusPath)) {
+                    loadAttributes(for: model.selectedNodePath ?? model.focusPath)
                 }
             } else {
                 ContentUnavailableView(
@@ -89,26 +91,27 @@ struct DebugTreeScreen: View {
     private var header: some View {
         HStack(spacing: 10) {
             Button {
-                appModel.captureDebugSnapshot()
+                model.captureNewSnapshot()
             } label: {
                 Label("Capture", systemImage: "camera")
             }
 
             Button {
-                guard !appModel.debugNodePath.isEmpty else { return }
-                appModel.debugNodePath.removeLast()
-                model.selectedNodePath = appModel.debugNodePath
+                guard !model.focusPath.isEmpty else { return }
+                model.focusPath.removeLast()
+                model.selectedNodePath = model.focusPath
+                model.scrollToNodeId = model.nodeIdString(model.focusPath)
             } label: {
                 Label("Up", systemImage: "arrow.up")
             }
-            .disabled(appModel.debugNodePath.isEmpty)
+            .disabled(model.focusPath.isEmpty)
 
             Button {
-                copyToPasteboard(model.displayPath(appModel.debugNodePath))
+                copyToPasteboard(model.displayPath(model.focusPath))
             } label: {
                 Label("Copy Focus Path", systemImage: "doc.on.doc")
             }
-            .disabled(appModel.debugSnapshot == nil)
+            .disabled(model.snapshot == nil)
 
             Button {
                 copyToPasteboard(model.displayPath(model.selectedNodePath ?? []))
@@ -122,15 +125,15 @@ struct DebugTreeScreen: View {
                 .frame(width: 180)
 
             Button {
-                appModel.saveDebugSnapshot(named: captureNameDraft)
+                model.saveCurrentCapture(named: captureNameDraft)
             } label: {
                 Label("Save Capture", systemImage: "square.and.arrow.down")
             }
-            .disabled(appModel.debugSnapshot == nil)
+            .disabled(model.snapshot == nil)
 
             Spacer()
 
-            Text("focus: \(model.displayPath(appModel.debugNodePath))")
+            Text("focus: \(model.displayPath(model.focusPath))")
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
@@ -185,7 +188,7 @@ struct DebugTreeScreen: View {
             else { model.expandedNodeIds.insert(nodeId) }
         }
         .contextMenu {
-            Button("Focus Here") { appModel.debugNodePath = node.accessibilityPath }
+            Button("Focus Here") { model.focusHere(node.accessibilityPath) }
         }
     }
 
@@ -342,16 +345,15 @@ struct DebugTreeScreen: View {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
-    private func loadAttributes() {
-        let path = model.selectedNodePath ?? appModel.debugNodePath
+    private func loadAttributes(for path: [Int]) {
         isLoadingAttributes = true
         selectedAttributesError = nil
 
         Task { @MainActor in
             do {
-                let attributes = try appModel.accessibility.readAllAttributes(at: path)
+                let attributes = try await model.selectedAttributes(at: path)
                 selectedAttributes = attributes
-                    .map { ($0.key, $0.value) }
+                    .map { ($0.0, $0.1) }
                     .sorted { $0.0.localizedStandardCompare($1.0) == .orderedAscending }
             } catch {
                 selectedAttributes = []
@@ -431,7 +433,7 @@ struct DebugTreeScreen: View {
 }
 
 #Preview {
-    DebugTreeScreen()
-        .environmentObject(AppModel.preview)
+    let appModel = AppModel.preview
+    DebugTreeScreen(captureService: appModel.whatsAppDebugService, accessibility: appModel.accessibility)
         .frame(width: 1100, height: 720)
 }

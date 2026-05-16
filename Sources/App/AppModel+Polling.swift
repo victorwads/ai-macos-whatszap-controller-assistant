@@ -10,11 +10,9 @@ extension AppModel {
             let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
             let allowedConversations = filteredConversations(screenState.conversations)
-            writeDebugArtifacts(snapshot: snapshot, screenState: screenState, prefix: "refresh")
             memoryStore.replaceConversations(allowedConversations)
             lastRefreshDescription = "List refreshed at \(Date().formatted(date: .omitted, time: .standard))"
             appendLog("Parsed \(allowedConversations.count) conversations from WhatsApp.")
-            appendLog("Wrote parser debug report to \(debugDirectory.path).")
             await refreshChangedChats(from: allowedConversations)
         } catch {
             appendLog("Failed to refresh conversations: \(error.localizedDescription)", level: .error)
@@ -108,7 +106,6 @@ extension AppModel {
         do {
             let snapshot = try await openConversationAndCapture(conversation)
             let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
-            writeDebugArtifacts(snapshot: snapshot, screenState: screenState, prefix: "chat-\(conversation.id)")
             let chatState = makeChatState(from: screenState, preferredConversation: conversation)
             memoryStore.upsertChatState(chatState)
             appendLog("Loaded \(screenState.messages.count) messages for \(conversation.name) (\(reason)).")

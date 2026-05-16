@@ -96,7 +96,6 @@ extension AppModel {
             parser: parser
         )
 
-        writeDebugArtifacts(snapshot: verification.snapshot, screenState: verification.state, prefix: "send-\(conversation.id)")
         memoryStore.replaceConversations(verification.state.conversations)
         updateSelectedChatState(from: verification.state, preferredConversation: conversation)
 

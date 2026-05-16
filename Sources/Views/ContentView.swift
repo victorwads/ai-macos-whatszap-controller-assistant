@@ -113,7 +113,10 @@ struct ContentView: View {
             case .integrationLogs:
                 LogsScreen()
             case .integrationDebug:
-                DebugTreeScreen()
+                DebugTreeScreen(
+                    captureService: appModel.whatsAppDebugService,
+                    accessibility: appModel.accessibility
+                )
             case .serverLogs:
                 ServerLogsScreen()
             case .serverTools:

@@ -3,6 +3,8 @@ import Foundation
 
 @MainActor
 final class DebugTreeViewModel: ObservableObject {
+    @Published var snapshot: WhatsAppSnapshot?
+    @Published var focusPath: [Int] = []
     @Published var selectedNodePath: [Int]?
     @Published var expandedNodeIds: Set<String> = [""]
     @Published var scrollToNodeId: String?
@@ -11,21 +13,40 @@ final class DebugTreeViewModel: ObservableObject {
     @Published var selectedFavoriteName: String?
     @Published var favorites: [String: [Int]] = DebugTreeFavoritesRepository.shared.load()
 
-    func resetForNewSnapshot(focusPath: [Int]) {
-        selectedNodePath = focusPath
+    private let captureService: WhatsAppDebugCaptureService
+    private let accessibility: AccessibilityService
+
+    init(captureService: WhatsAppDebugCaptureService, accessibility: AccessibilityService) {
+        self.captureService = captureService
+        self.accessibility = accessibility
+    }
+
+    func captureNewSnapshot() {
+        guard let snapshot = captureService.captureSnapshot(maxDepth: 14) else {
+            return
+        }
+
+        resetForNewSnapshot(snapshot: snapshot)
+    }
+
+    func resetForNewSnapshot(snapshot: WhatsAppSnapshot) {
+        self.snapshot = snapshot
+        focusPath = []
+        selectedNodePath = []
         expandedNodeIds = [""]
-        scrollToNodeId = nodeIdString(focusPath)
+        scrollToNodeId = nodeIdString([])
 
         syncFavoriteDraftForSelection()
     }
 
-    func syncFromFocusPath(_ focusPath: [Int]) {
-        selectedNodePath = focusPath
-        scrollToNodeId = nodeIdString(focusPath)
+    func focusHere(_ path: [Int]) {
+        focusPath = path
+        selectedNodePath = path
+        scrollToNodeId = nodeIdString(path)
         syncFavoriteDraftForSelection()
     }
 
-    func handleSelectionChanged(snapshot: WhatsAppSnapshot) {
+    func handleSelectionChanged() {
         syncFavoriteDraftForSelection()
     }
 
@@ -78,5 +99,19 @@ final class DebugTreeViewModel: ObservableObject {
             selectedFavoriteName = nil
             favoriteNameDraft = ""
         }
+    }
+
+    func saveCurrentCapture(named name: String) {
+        guard let snapshot else { return }
+        captureService.saveDebugSnapshot(
+            named: name,
+            focusPath: focusPath,
+            snapshot: snapshot
+        )
+    }
+
+    func selectedAttributes(at path: [Int]) async throws -> [(String, String)] {
+        try await accessibility.readAllAttributes(at: path)
+            .map { ($0.key, $0.value) }
     }
 }

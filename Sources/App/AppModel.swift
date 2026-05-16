@@ -33,8 +33,6 @@ final class AppModel: ObservableObject {
     @Published var conversationAccessMode: ConversationAccessMode = .allowAllExceptDeny
     @Published var denyConversationNames: [String] = []
     @Published var allowConversationNames: [String] = []
-    @Published var debugSnapshot: WhatsAppSnapshot?
-    @Published var debugNodePath: [Int] = []
     @Published var assistantInstructions = ""
     @Published var pendingClientAskCount = 0
     @Published var microphoneAuthorized = true
@@ -49,6 +47,13 @@ final class AppModel: ObservableObject {
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
     let parser = WhatsAppAppParser()
+    lazy var whatsAppDebugService = WhatsAppDebugCaptureService(
+        accessibility: accessibility,
+        parser: parser,
+        log: { [weak self] message, level in
+            self?.appendLog(message, level: level)
+        }
+    )
     let interactor = WhatsAppInteractor()
     let memoryStore = WhatsAppMemoryStore.shared
     lazy var mcpServerCoordinator: MCPServerCoordinator = {
@@ -82,7 +87,6 @@ final class AppModel: ObservableObject {
     var pollingTask: Task<Void, Never>?
     var permissionMonitorTask: Task<Void, Never>?
     var listSignaturesById: [String: String] = [:]
-    let debugDirectory = URL(fileURLWithPath: "/tmp/AssistantMCPServer", isDirectory: true)
     var cancellables: Set<AnyCancellable> = []
     var liveStatusTask: Task<Void, Never>?
     let serverCallsRepository = ServerCallsRepository.shared
