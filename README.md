@@ -1,363 +1,242 @@
-# Assistant MCP Server
+# AssistantMCPServer
 
-Local macOS assistant bridge for controlling WhatsApp Desktop through Accessibility and exposing fast MCP tools to Codex.
+Local macOS assistant bridge that combines a native SwiftUI app, Accessibility-driven control, and an embedded MCP HTTP server.
 
-## Purpose
+Today the project focuses on controlling WhatsApp Desktop locally on macOS.
+The long-term direction is broader assistant orchestration, including future integrations with Gmail and Calendar.
 
-This project exists because direct Computer Use interaction with WhatsApp is too slow and token-heavy for live conversations. The desired model is:
+## What This Project Is
 
-- A native macOS process watches WhatsApp locally.
-- It parses the Accessibility tree into stable objects.
-- It waits for changes locally, polling every few seconds (default 3s).
-- Codex calls MCP tools and receives clean events instead of repeatedly reading the entire UI tree.
+This is not a generic cloud bot and not a browser-only automation layer.
+It is a native macOS app that:
 
-The primary use case is active personal-assistant work: WhatsApp conversations, scheduling follow-ups, waiting for replies, and coordinating tasks without model-side `sleep` loops.
+- reads the WhatsApp Desktop Accessibility tree
+- keeps a local in-memory and persisted view of chats, messages, memories, subjects, and nicknames
+- exposes those capabilities through an MCP server on `http://localhost:8080/mcp` by default
+- provides a SwiftUI interface for logs, status, settings, debugging, and manual inspection
 
-## Repository Path
+The main idea is to let Codex or another MCP client ask the app for state and actions, instead of repeatedly scanning the full UI tree or relying on model-side sleep loops.
 
-Use the no-space path:
+## Current Scope
 
-```sh
-/Users/victorwads/GitRepos/Personal/AssistantMCPServer
-```
+The current implementation is centered on these local capabilities:
 
-Avoid paths with spaces for this project.
+- WhatsApp Desktop chat discovery and message inspection
+- sending WhatsApp messages through Accessibility
+- waiting for unread messages or client prompts without busy-waiting in the model
+- text-to-speech and client prompt workflows
+- local memory storage
+- subject tracking for operational work
+- nickname management for WhatsApp chats
+
+The Gmail and Calendar pieces are not implemented yet, but the data model already leaves room for them through subject fields such as `gmailThreadId` and `calendarEventId`.
 
 ## Architecture
 
-The intended architecture has two main layers.
+The app is a single native macOS process with a few clearly separated layers:
 
-`AssistantMCPServer.app`
+- `Sources/AssistantMCPServerApp.swift` launches the SwiftUI app
+- `Sources/App/AppModel.swift` wires persistence, Accessibility, polling, voice, and MCP coordination
+- `Sources/Features/WhatsAppIntegration/` contains Accessibility capture, parsing, and interaction logic
+- `Sources/Features/Server/` contains the MCP HTTP server, transport, tool registry, and tool handlers
+- `Sources/Repositories/` stores local state for memories, subjects, nicknames, chat history, and client voice events
+- `Sources/Views/` and `Sources/Features/*Screen.swift` provide the UI
 
-Native macOS SwiftUI app responsible for:
+The MCP server runs inside the app process and serves JSON-RPC-style MCP traffic over HTTP.
+The default endpoint is:
 
-- requesting and checking Accessibility permission
-- finding WhatsApp Desktop by bundle ID, currently `net.whatsapp.WhatsApp`
-- reading WhatsApp Accessibility nodes through `AXUIElement`
-- parsing visible chats, unread counts, selected chat, messages, typing state, and compose field
-- sending text messages via Accessibility interactions
-- showing live logs and raw parser output on screen
-- exposing a local MCP HTTP server on `/mcp`
+```text
+http://localhost:8080/mcp
+```
 
-The current app already includes the MCP server layer in the same process, serving JSON-RPC tool requests directly. A future split into a separate MCP process is still possible, but the current implementation keeps the HTTP bridge and Accessibility logic together.
+The server also exposes a lightweight health check:
 
-## Current Project
+```text
+GET /health
+```
 
-This repo currently contains a generated Xcode project for a macOS SwiftUI app with Accessibility polling and an embedded MCP HTTP bridge:
+## UI
 
-- `project.yml`: XcodeGen project definition
-- `AssistantMCPServer.xcodeproj`: generated Xcode project
-- `Sources/AssistantMCPServerApp.swift`: app entrypoint
-- `Sources/ContentView.swift`: main UI and MCP server controls
-- `Sources/LogView.swift`: live log panel
-- `Sources/App/AppModel.swift`: app state, startup, and service wiring
-- `Sources/App/AppModel+Polling.swift`: polling loop and refresh logic
-- `Sources/App/AppModel+Messaging.swift`: send-message flow and enqueue semantics
-- `Sources/App/AppModel+MCP.swift`: MCP JSON-RPC request handling and tool definitions
-- `Sources/App/WhatsAppMemoryStore.swift`: chat state and wait-for-message support (rehydrated from persisted cache on startup)
-- `Sources/WhatsAppBridge/Interaction/WhatsAppInteractor.swift`: selecting conversations and sending messages in WhatsApp
-- `Sources/WhatsAppBridge/Parsing/WhatsAppAccessibilityMap.swift`: heuristics for locating WhatsApp AX nodes
-- `Sources/WhatsAppBridge/Accessibility/AccessibilityService.swift`: low-level AX and keyboard event interactions
+The main SwiftUI window is split into sections for:
 
-## Default Development Flow
+- WhatsApp chats
+- integration logs
+- Accessibility debug views
+- server logs
+- server tools
+- memories
+- subjects
+- nicknames
+- client voice
+- settings
 
-Use the restart script as the default way to test local changes:
+The settings screen lets you:
+
+- change the polling interval
+- refresh chats manually
+- start and stop polling
+- request Accessibility permission
+- configure the MCP host and port
+- copy an MCP client config snippet
+- adjust outgoing-message prefix and signature behavior
+
+## MCP Tools
+
+The server currently registers these tools:
+
+### WhatsApp chat tools
+
+- `get_assistant_name`
+- `list_chats`
+- `list_unread_chats`
+- `list_chats_by_search`
+- `list_recent_messages`
+- `send_message`
+- `wait_for_chat_message`
+- `wait_for_event`
+
+### Client voice tools
+
+- `speak_to_client`
+- `ask_to_client`
+
+### Memory tools
+
+- `create_memory`
+- `get_memory`
+- `get_memories_by_tag`
+- `delete_memory`
+
+### Subject tools
+
+- `create_subject`
+- `update_subject`
+- `resolve_subject`
+- `cancel_subject`
+- `list_active_subjects`
+- `get_subject`
+
+### Nickname tools
+
+- `list_nicknames`
+- `save_nickname`
+- `delete_nickname`
+
+## Tool Behavior Notes
+
+- `send_message` accepts a `chatId` plus a `messages` array.
+- `wait_for_chat_message` waits for unread messages in a specific chat or a client prompt.
+- `wait_for_event` waits for any unread WhatsApp messages or a client prompt.
+- `get_memories_by_tag` returns all memories when `tag` is omitted.
+- `get_memory` looks up by `key`.
+- Subject entries already include optional `gmailThreadId` and `calendarEventId` fields for future cross-app linking.
+- Outgoing WhatsApp messages can be prefixed and suffixed through the settings screen.
+
+## Development Requirements
+
+- macOS 14.0 or newer
+- Xcode with Swift 6 support
+- XcodeGen `2.42.0` or newer
+- WhatsApp Desktop installed locally
+- Accessibility permission granted to the built app
+
+## Build And Run
+
+The canonical local workflow is the restart script:
 
 ```sh
 ./scripts/restart.sh
 ```
 
-This is the standard build-and-run path for the project. It:
+That script:
 
 - closes running `AssistantMCPServer` instances
-- regenerates `AssistantMCPServer.xcodeproj` with `xcodegen`
+- regenerates the Xcode project with `xcodegen`
 - builds the Debug app
 - opens the freshly built app
 
-Use this flow when validating changes locally instead of calling `xcodebuild` manually.
-
-Generate the Xcode project again after changing `project.yml` only if you want that step by itself:
+If you only want to regenerate the project file:
 
 ```sh
 xcodegen generate
 ```
 
-Restart the app from a clean build:
-
-```sh
-./scripts/restart.sh
-```
-
-Open the project:
+If you want to open the generated project in Xcode:
 
 ```sh
 open AssistantMCPServer.xcodeproj
 ```
 
-## Development Commands
+## MCP Client Configuration
 
-Rebuild and run the app using the restart script (this is the canonical workflow for this repo):
+The app shows a ready-to-copy snippet in Settings.
+The default shape is:
 
-```sh
-./scripts/restart.sh
+```toml
+[mcp_servers.assistant_whatsapp]
+enabled = true
+url = "http://localhost:8080/mcp"
 ```
 
-Notes:
-- Always use `./scripts/restart.sh` even when you only want to verify the build is passing.
-- The script regenerates the Xcode project via `xcodegen`, builds using a stable `build/DerivedData` path, and launches the freshly built app.
+If you change the port in the app settings, update the client URL to match.
 
-## Desired MCP Tools
+## Accessibility Setup
 
-The app currently exposes a local MCP HTTP server at `/mcp` that implements JSON-RPC-style `tools/list` and `tools/call` requests.
+The app depends on macOS Accessibility permission to inspect and control WhatsApp Desktop.
 
-Current implemented tools:
+If the UI says Accessibility is not trusted:
+
+1. Open the app
+2. Grant Accessibility permission in System Settings
+3. Quit and relaunch the app
+4. Refresh the chat list or debug tree
+
+macOS grants permission to the exact app binary, so the identity may matter after rebuilds.
+
+## Polling And State
+
+The app keeps local state in sync by polling WhatsApp on a configurable interval.
+The default polling interval is 5 seconds.
+
+At a high level:
 
 ```text
-list_chats()
-list_recent_messages(chatId, limit = 10)
-list_chats_by_search(query, limit = 3)
-send_message(chatId, text)
-wait_for_message(chatId?, afterMessageId?)
-get_memories_by_tag(tag?)
-resolve_subject(id, reason)
-cancel_subject(id, reason)
+poll WhatsApp Accessibility tree
+parse chats and messages
+update local memory store
+refresh changed conversations
+serve current state through MCP
 ```
 
-### Chat History Persistence
+This means the MCP layer reads from local state instead of re-parsing the UI from scratch for every tool call.
 
-By default the app persists the last parsed chat state (recent messages + per-chat UI state) to `UserDefaults` and restores it on restart.
-If a chat has no cached messages (fresh install, cache cleared, or decode failure), the polling loop will load messages from WhatsApp even if the chat list signature has not changed.
+## Repository Layout
 
-The MCP server also accepts lightweight protocol messages such as `initialize`, `ping`, and `notifications/initialized` for integration compatibility.
+Key files and folders:
 
-The most important runtime pattern is:
-- the native app polls WhatsApp locally on a schedule
-- the MCP server answers tool calls from the app state
-- `wait_for_message` can be used to avoid model-side polling by waiting until new chat state arrives
+- `project.yml` - XcodeGen project definition
+- `scripts/restart.sh` - canonical local build-and-run script
+- `Sources/App/` - application state, polling, persistence, and MCP wiring
+- `Sources/Features/Server/` - MCP server transport and tool handlers
+- `Sources/Features/WhatsAppIntegration/` - Accessibility capture, parsing, and interaction
+- `Sources/Repositories/` - local repositories for persistent state
+- `Sources/Views/` - app views and debug screens
 
-## Data Model
+## Roadmap
 
-Suggested chat object:
+The next major expansion areas are:
 
-```ts
-type Chat = {
-  id: string
-  name: string
-  unreadCount: number
-  isPinned: boolean
-  isSelected: boolean
-  lastMessagePreview: string
-  lastMessageAt: string | null
-  lastMessageDirection: "incoming" | "outgoing" | "unknown"
-  isTyping: boolean
-}
-```
+- Gmail integration
+- Calendar integration
+- richer cross-channel subject tracking
+- deeper automation around follow-ups and task state
 
-Suggested message object:
+The current subject model already anticipates that direction, so the project can grow without redesigning the entire data model.
 
-```ts
-type Message = {
-  id: string
-  chatId: string
-  direction: "incoming" | "outgoing"
-  kind: "text" | "voice" | "image" | "document" | "deleted" | "unknown"
-  text?: string
-  durationSeconds?: number
-  timestamp?: string
-  status?: "sent" | "delivered" | "read" | "unknown"
-  rawAccessibilityText: string
-}
-```
+## Notes For Contributors
 
-Suggested chat state:
-
-```ts
-type ChatState = {
-  chat: Chat
-  messages: Message[]
-  composeFocused: boolean
-  canSendText: boolean
-}
-```
-
-## Accessibility Parsing Strategy
-
-Prefer Accessibility semantics over coordinates.
-
-Use:
-
-- `AXRole`
-- `AXDescription`
-- `AXValue`
-- `AXTitle`
-- `AXHelp`
-- known labels such as `List of chats`, `Messages in chat with ...`, `Compose message`, `Send`, `Voice message`, `Unread`, and `is typing`
-
-Suggested parser layers:
-
-`RawAXNode`
-
-Object representation of the raw Accessibility tree.
-
-`WhatsAppScreenParser`
-
-Converts raw nodes into:
-
-- visible chat list
-- selected chat
-- visible message list
-- typing state
-- compose state
-
-`ChangeDetector`
-
-Compares snapshots and emits events:
-
-- new incoming message
-- outgoing message status changed
-- chat became unread
-- typing started/stopped
-- selected chat changed
-
-## Polling And Waits
-
-The native app currently polls WhatsApp locally on a scheduled background loop.
-
-```text
-every 3s (default):
-  capture WhatsApp AX snapshot
-  parse chat list and selected chat state
-  update the in-memory store
-  refresh changed conversations and message state
-```
-
-The actual code uses:
-- `AppModel.startPolling()` to start the loop
-- `AppModel.schedulePollingRefresh()` to enqueue work in the scheduler
-- `AccessibilityActionScheduler` to serialize AX actions and respect priorities
-- `WhatsAppMemoryStore` to keep conversation state and signal new messages
-
-That means the app owns the polling and state tracking. The MCP server only exposes the current state and action tools over HTTP.
-
-## Conversation Behavior Instructions
-
-The MCP `get_instructions()` should eventually return these rules.
-
-Cadence:
-
-- For hot conversations, start by waiting `5s`.
-- If no reply, wait `15s`.
-- Wait another `15s`.
-- Then wait `30s`.
-- Wait another `30s`.
-- Then stay at `60s` until a reply arrives.
-- Reset to `5s` when a new reply arrives in an engaged conversation.
-- If the other person is visibly typing, prefer short `5s` waits before replying.
-
-Human style:
-
-- Do not constantly interrupt while the other person is typing.
-- Use short follow-ups when silence feels unnatural.
-- Keep the tone conversational, interested, and not robotic.
-- Avoid over-structured or overly polished replies in WhatsApp.
-- It is acceptable to sound lightly anticipatory when waiting for a response.
-
-Audio limitation:
-
-- The assistant cannot reliably understand WhatsApp voice messages unless transcription is added later.
-- When needed, ask the person to send text.
-
-Conversation completion:
-
-- When a test conversation is winding down, ask if the person wants anything else.
-- Then close naturally with a short thanks.
-
-## Debug UI Requirements
-
-The app should visibly log:
-
-- Accessibility permission state
-- whether WhatsApp is running
-- selected chat
-- parsed chat list
-- unread chats
-- latest parsed messages
-- typing indicators
-- raw Accessibility snippets when parsing fails
-- events emitted to MCP waits
-- send message attempts and results
-
-This log panel is important because WhatsApp may change Accessibility labels or hierarchy. The parser should be easy to inspect and adjust.
-
-## MVP Plan
-
-1. Build the SwiftUI debug app and Accessibility permission flow.
-2. Dump WhatsApp Accessibility tree into the log panel.
-3. Parse visible chat list.
-4. Parse selected conversation and visible messages.
-5. Detect new messages by diffing snapshots.
-6. Implement text sending.
-7. Add a local HTTP server inside the macOS app.
-8. Add a separate MCP server that calls the local app.
-9. Implement `wait_for_next_message`.
-10. Add `get_instructions`.
-
-## Risks
-
-- WhatsApp may change Accessibility labels or node hierarchy.
-- Voice messages are not useful without transcription.
-- Only visible messages may be available without scrolling.
-- Accessibility permission may reset when app signing changes.
-- Send actions need deduplication to avoid repeated messages after retries.
-
-`send_message` should eventually return enough information to verify the send:
-
-```json
-{
-  "chatId": "example",
-  "text": "message sent",
-  "observed_status": "sent",
-  "timestamp": "2026-05-11T15:00:00-03:00"
-}
-```
-
-## Build Notes
-
-This project uses XcodeGen. Install path on this machine:
-
-```sh
-/opt/homebrew/bin/xcodegen
-```
-
-Build from terminal:
-
-```sh
-./scripts/restart.sh
-```
-
-This generates the Xcode project (via XcodeGen), builds with a stable `build/DerivedData` path, closes any running instance, and opens the newly built app.
-
-If you explicitly want to build without restarting/opening the app, you can still run `xcodebuild` manually.
-
-Run from Xcode first so macOS can prompt for Accessibility permission cleanly.
-
-For Accessibility testing, do not run the app unsigned or with `CODE_SIGNING_ALLOWED=NO`. macOS TCC keys the permission to the app identity, and ad-hoc/unsigned rebuilds can make System Settings treat the rebuilt app as a different client. The generated project is configured for `CODE_SIGN_STYLE=Automatic` with team `RP7J7JX9L2` (Xcode will pick an appropriate `Apple Development` certificate automatically); if this machine/team changes, update `DEVELOPMENT_TEAM` in `project.yml`, run `xcodegen generate`, then grant Accessibility once again.
-
-## Accessibility Permission While Running From Xcode
-
-macOS TCC grants Accessibility permission to a specific app identity/path. When the app is launched from Xcode, that binary usually lives inside Xcode DerivedData, not directly inside the repository.
-
-If the app keeps saying Accessibility is not trusted:
-
-1. Run the app from Xcode.
-2. Press `Permission`.
-3. Enable the app that appears in `System Settings > Privacy & Security > Accessibility`.
-4. Return to the app; it should relaunch itself after detecting the new permission.
-5. Press `Refresh`.
-6. Press `Dump WhatsApp`.
-
-If the Accessibility toggle turns itself off after every rebuild, remove the old entry from System Settings, confirm the app is being signed (with “Automatically manage signing” enabled and the expected team), rebuild, and grant the permission again.
-
-The app logs its current bundle id, bundle path, and executable path so you can verify which exact binary macOS needs to trust.
-
-The `Dump WhatsApp` action checks Accessibility permission live instead of trusting cached UI state, because permission can change while the app is open.
+- Keep the app native and local-first.
+- Prefer Accessibility semantics over screen coordinates.
+- Keep MCP tool names stable once they are used by clients.
+- Treat WhatsApp, Gmail, and Calendar as separate integration surfaces, even if they eventually feed the same subject model.
+- Update this README whenever the tool list or runtime architecture changes.
