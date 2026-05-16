@@ -28,9 +28,11 @@ struct WaitForChatMessageTool: MCPToolHandler {
             Task { await context.endClientPromptWait(id: waitId) }
         }
 
-        let deadline = Date().addingTimeInterval(110)
+        while true {
+            if Task.isCancelled {
+                return .failure(CancellationError())
+            }
 
-        while Date() < deadline {
             if let prompt = await context.consumeClientPrompt() {
                 return .success(.object([
                     "timedOut": .bool(false),
@@ -66,7 +68,5 @@ struct WaitForChatMessageTool: MCPToolHandler {
 
             try? await Task.sleep(for: .milliseconds(350))
         }
-
-        return .success(.object(["timedOut": .bool(true)]))
     }
 }
