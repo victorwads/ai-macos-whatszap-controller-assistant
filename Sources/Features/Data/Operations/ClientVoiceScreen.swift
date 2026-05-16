@@ -273,7 +273,12 @@ struct ClientVoiceScreen: View {
         isWorking = true
         defer { isWorking = false }
         do {
-            try await appModel.voiceAssistant.speak(text, language: appModel.speechLanguage, voiceIdentifier: appModel.speechVoiceIdentifier, rate: appModel.speechRate)
+            try await appModel.voiceAssistant.speak(
+                text,
+                language: appModel.voiceSettings.speechLanguage,
+                voiceIdentifier: appModel.voiceSettings.speechVoiceIdentifier,
+                rate: appModel.voiceSettings.speechRate
+            )
         } catch {
             errorText = error.localizedDescription
         }

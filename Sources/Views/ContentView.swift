@@ -14,6 +14,7 @@ struct ContentView: View {
         case integrationLogs
         case integrationDebug
         case serverLogs
+        case serverTools
         case settings
 
         var id: String { rawValue }
@@ -28,6 +29,7 @@ struct ContentView: View {
             case .integrationLogs: "Logs"
             case .integrationDebug: "Debug"
             case .serverLogs: "Logs"
+            case .serverTools: "Tools"
             case .settings: "Settings"
             }
         }
@@ -42,6 +44,7 @@ struct ContentView: View {
             case .integrationLogs: "list.bullet.rectangle"
             case .integrationDebug: "point.3.connected.trianglepath.dotted"
             case .serverLogs: "server.rack"
+            case .serverTools: "wrench.and.screwdriver"
             case .settings: "gearshape"
             }
         }
@@ -65,6 +68,7 @@ struct ContentView: View {
 
                 Section("Server") {
                     sidebarItem(.serverLogs)
+                    sidebarItem(.serverTools)
                 }
 
                 Section("Settings") {
@@ -98,7 +102,13 @@ struct ContentView: View {
             case .whatsAppChats:
                 ConversationsScreen()
             case .settings:
-                SettingsScreen(appModel: appModel)
+                SettingsScreen(
+                    appModel: appModel,
+                    voiceSettings: appModel.voiceSettings,
+                    handsFreeClientVoiceSettings: appModel.handsFreeClientVoiceSettings,
+                    inputLockSettings: appModel.inputLockSettings,
+                    mcpSendPrefixSettings: appModel.mcpSendPrefixSettings
+                )
                     .padding(12)
             case .integrationLogs:
                 LogsScreen()
@@ -106,6 +116,8 @@ struct ContentView: View {
                 DebugTreeScreen()
             case .serverLogs:
                 ServerLogsScreen()
+            case .serverTools:
+                ServerToolsScreen()
             }
         }
     }

@@ -36,19 +36,15 @@ final class AppModel: ObservableObject {
     @Published var debugSnapshot: WhatsAppSnapshot?
     @Published var debugNodePath: [Int] = []
     @Published var assistantInstructions = ""
-    @Published var speechVoiceIdentifier: String?
-    @Published var speechLanguage = "pt-BR"
-    @Published var speechRate: Float = AVSpeechUtteranceDefaultSpeechRate
-    @Published var recognitionLocaleIdentifier = "pt-BR"
-    @Published var experimentalSpeakApiEnabled = true
-    @Published var experimentalInputLockEnabled = false
-    @Published var mcpSendMessagePrefix = ""
     @Published var pendingClientAskCount = 0
     @Published var microphoneAuthorized = true
     @Published var speechRecognitionAuthorized = true
-    @Published var handsFreeClientVoiceEnabled = true
-    @Published var handsFreeClientVoiceDebounceSeconds = HandsFreeClientVoiceSettingsRepository.defaultDebounceSeconds
     @Published var speechSynthesizerSpeaking = false
+
+    let voiceSettings: VoiceSettingsModel
+    let handsFreeClientVoiceSettings: HandsFreeClientVoiceSettingsModel
+    let inputLockSettings: InputLockSettingsModel
+    let mcpSendPrefixSettings: MCPSendPrefixSettingsModel
 
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
@@ -95,12 +91,16 @@ final class AppModel: ObservableObject {
     let subjectsRepository = SubjectsRepository.shared
     let clientVoiceEventsRepository = ClientVoiceEventsRepository.shared
     let chatHistoryRepository = ChatHistoryRepository.shared
-    private let handsFreeClientVoiceSettingsRepository = HandsFreeClientVoiceSettingsRepository.shared
-    let experimentalSpeakSettingsRepository = ExperimentalSpeakSettingsRepository.shared
     var chatHistoryListenerId: UUID?
     var chatHistoryPersistTask: Task<Void, Never>?
 
     init(startupMode: StartupMode = .live) {
+        let shouldLoadPersistedSettings = startupMode == .live
+        voiceSettings = VoiceSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
+        handsFreeClientVoiceSettings = HandsFreeClientVoiceSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
+        inputLockSettings = InputLockSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
+        mcpSendPrefixSettings = MCPSendPrefixSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
+
         voiceAssistant.onSpeakingStateChanged = { [weak self] isSpeaking in
             self?.speechSynthesizerSpeaking = isSpeaking
         }
@@ -109,23 +109,23 @@ final class AppModel: ObservableObject {
         case .live:
             loadConversationAccessSettings()
             loadAssistantInstructions()
-            loadVoiceSettings()
-            loadExperimentalSpeakSetting()
-            loadHandsFreeClientVoiceSetting()
-            loadExperimentalInputLockSetting()
-            loadMCPSendMessagePrefixSetting()
             loadChatListSignatures()
             loadChatHistory()
             bindMemoryStore()
             bindChatHistoryPersistence()
             refreshMicrophoneAuthorization()
             refreshSpeechRecognitionAuthorization()
+            bindFeatureSettings()
             Task { [weak self] in
                 await self?.markStaleClientVoiceAsLost()
                 await self?.refreshPendingClientAskCount()
             }
             Task { [weak self] in
                 await self?.loadPersistedServerCalls()
+            }
+            Task { [weak self] in
+                guard let self else { return }
+                await self.voiceAssistant.setExperimentalSpeakEnabled(self.voiceSettings.experimentalSpeakApiEnabled)
             }
             refreshStatus()
             startLiveStatusMonitoring()
@@ -141,9 +141,31 @@ final class AppModel: ObservableObject {
             lastRefreshDescription = "Preview"
             microphoneAuthorized = true
             speechRecognitionAuthorized = true
-            handsFreeClientVoiceEnabled = false
-            handsFreeClientVoiceDebounceSeconds = HandsFreeClientVoiceSettingsRepository.defaultDebounceSeconds
+            voiceSettings.experimentalSpeakApiEnabled = true
+            handsFreeClientVoiceSettings.isEnabled = false
+            handsFreeClientVoiceSettings.debounceSeconds = HandsFreeClientVoiceSettingsModel.defaultDebounceSeconds
         }
+    }
+
+    private func bindFeatureSettings() {
+        voiceSettings.$experimentalSpeakApiEnabled
+            .dropFirst()
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                Task {
+                    await self.voiceAssistant.setExperimentalSpeakEnabled(enabled)
+                }
+            }
+            .store(in: &cancellables)
+
+        handsFreeClientVoiceSettings.$isEnabled
+            .dropFirst()
+            .sink { [weak self] _ in
+                Task { [weak self] in
+                    await self?.maybeShowHandsFreeClientVoiceWindow()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     func refreshPendingClientAskCount() async {
@@ -158,30 +180,8 @@ final class AppModel: ObservableObject {
         appendLog("Marked \(markedCount) stale client voice ask(s) as lost after launch.", level: .warning)
     }
 
-    private func loadHandsFreeClientVoiceSetting() {
-        handsFreeClientVoiceEnabled = handsFreeClientVoiceSettingsRepository.load(defaultValue: true)
-        handsFreeClientVoiceDebounceSeconds = handsFreeClientVoiceSettingsRepository.loadDebounceSeconds()
-
-        $handsFreeClientVoiceEnabled
-            .dropFirst()
-            .sink { [weak self] value in
-                self?.handsFreeClientVoiceSettingsRepository.save(value)
-                Task { [weak self] in
-                    await self?.maybeShowHandsFreeClientVoiceWindow()
-                }
-            }
-            .store(in: &cancellables)
-
-        $handsFreeClientVoiceDebounceSeconds
-            .dropFirst()
-            .sink { [weak self] value in
-                self?.handsFreeClientVoiceSettingsRepository.save(debounceSeconds: value)
-            }
-            .store(in: &cancellables)
-    }
-
     private func maybeShowHandsFreeClientVoiceWindow() async {
-        guard handsFreeClientVoiceEnabled else { return }
+        guard handsFreeClientVoiceSettings.isEnabled else { return }
         let pending = await clientVoiceEventsRepository.list(limit: 50)
             .filter { $0.kind == .ask && $0.askStatus == .pending }
         guard let latest = pending.first else { return }

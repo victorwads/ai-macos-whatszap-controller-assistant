@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ClientVoiceHandsFreeWindow: View {
     @ObservedObject var appModel: AppModel
+    @ObservedObject var voiceSettings: VoiceSettingsModel
     let askId: UUID
     let prompt: String
     let onDone: () -> Void
@@ -100,7 +101,7 @@ struct ClientVoiceHandsFreeWindow: View {
         recognitionTask = Task { @MainActor in
             do {
                 try await appModel.voiceAssistant.startListening(
-                    recognitionLocaleIdentifier: appModel.recognitionLocaleIdentifier,
+                    recognitionLocaleIdentifier: voiceSettings.recognitionLocaleIdentifier,
                     onPartial: { partial in
                         guard !didResolve else { return }
                         draftResponse = partial
@@ -127,7 +128,7 @@ struct ClientVoiceHandsFreeWindow: View {
 
     private func scheduleAutoSubmit(with transcript: String) {
         debounceTask?.cancel()
-        let debounceSeconds = max(0.5, appModel.handsFreeClientVoiceDebounceSeconds)
+        let debounceSeconds = max(0.5, appModel.handsFreeClientVoiceSettings.debounceSeconds)
 
         debounceTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(debounceSeconds))
@@ -149,7 +150,7 @@ struct ClientVoiceHandsFreeWindow: View {
         debounceTask?.cancel()
         debounceTask = nil
         Task { @MainActor in
-            await appModel.voiceAssistant.stopListening()
+            appModel.voiceAssistant.stopListening()
         }
     }
 
@@ -164,7 +165,7 @@ struct ClientVoiceHandsFreeWindow: View {
         debounceTask = nil
         recognitionTask = nil
 
-        await appModel.voiceAssistant.stopListening()
+        appModel.voiceAssistant.stopListening()
 
         do {
             _ = try await appModel.clientVoiceEventsRepository.answerAsk(id: askId, response: trimmed)
@@ -187,8 +188,10 @@ struct ClientVoiceHandsFreeWindow: View {
 }
 
 #Preview {
-    ClientVoiceHandsFreeWindow(
-        appModel: AppModel.preview,
+    let appModel = AppModel.preview
+    return ClientVoiceHandsFreeWindow(
+        appModel: appModel,
+        voiceSettings: appModel.voiceSettings,
         askId: UUID(),
         prompt: "Você pode confirmar o endereço de entrega?",
         onDone: {}

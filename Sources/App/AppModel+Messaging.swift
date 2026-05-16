@@ -78,7 +78,7 @@ extension AppModel {
         }
 
         _ = try await openConversationAndCapture(conversation)
-        let shouldLockInput = experimentalInputLockEnabled
+        let shouldLockInput = inputLockSettings.isEnabled
         if shouldLockInput {
             // Experimental: prevent the user from stealing focus mid-send.
             accessibility.lockUserInputForSend(seconds: 5)

@@ -23,6 +23,7 @@ final class ClientVoiceHandsFreeWindowController: NSWindowController {
 
         let rootView = ClientVoiceHandsFreeWindow(
             appModel: appModel,
+            voiceSettings: appModel.voiceSettings,
             askId: askId,
             prompt: prompt,
             onDone: { [weak self] in

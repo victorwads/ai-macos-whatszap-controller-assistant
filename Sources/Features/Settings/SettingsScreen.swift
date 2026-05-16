@@ -4,6 +4,10 @@ import SwiftUI
 
 struct SettingsScreen: View {
     @ObservedObject var appModel: AppModel
+    @ObservedObject var voiceSettings: VoiceSettingsModel
+    @ObservedObject var handsFreeClientVoiceSettings: HandsFreeClientVoiceSettingsModel
+    @ObservedObject var inputLockSettings: InputLockSettingsModel
+    @ObservedObject var mcpSendPrefixSettings: MCPSendPrefixSettingsModel
     @State private var isReadingInstructions = false
 
     var body: some View {
@@ -70,7 +74,7 @@ struct SettingsScreen: View {
                         }
 
                         HStack(spacing: 8) {
-                            Toggle("Experimental Input Lock (5s during send)", isOn: $appModel.experimentalInputLockEnabled)
+                            Toggle("Experimental Input Lock (5s during send)", isOn: $inputLockSettings.isEnabled)
                                 .toggleStyle(.switch)
 
                             Button {} label: {
@@ -203,7 +207,7 @@ struct SettingsScreen: View {
                         HStack {
                             Text("Assistant name")
                             Spacer()
-                            TextField("e.g. Robozinho", text: $appModel.mcpSendMessagePrefix)
+                            TextField("e.g. Robozinho", text: $mcpSendPrefixSettings.sendMessagePrefix)
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 260)
                         }
@@ -246,8 +250,8 @@ struct SettingsScreen: View {
                         HStack {
                             Text("Recognition")
                             Spacer()
-                            Picker("Recognition", selection: $appModel.recognitionLocaleIdentifier) {
-                                ForEach(appModel.availableRecognitionLocales, id: \.identifier) { locale in
+                            Picker("Recognition", selection: $voiceSettings.recognitionLocaleIdentifier) {
+                                ForEach(voiceSettings.availableRecognitionLocales, id: \.identifier) { locale in
                                     Text(locale.identifier).tag(locale.identifier)
                                 }
                             }
@@ -257,8 +261,8 @@ struct SettingsScreen: View {
                         HStack {
                             Text("Speech language")
                             Spacer()
-                            Picker("Speech language", selection: $appModel.speechLanguage) {
-                                ForEach(appModel.availableSpeechLanguages, id: \.self) { language in
+                            Picker("Speech language", selection: $voiceSettings.speechLanguage) {
+                                ForEach(voiceSettings.availableSpeechLanguages, id: \.self) { language in
                                     Text(language).tag(language)
                                 }
                             }
@@ -268,10 +272,10 @@ struct SettingsScreen: View {
                         HStack {
                             Text("Voice")
                             Spacer()
-                            let voices = appModel.availableSpeechVoices(forLanguage: appModel.speechLanguage)
+                            let voices = voiceSettings.availableSpeechVoices(forLanguage: voiceSettings.speechLanguage)
                             Picker("Voice", selection: Binding<String>(
-                                get: { appModel.speechVoiceIdentifier ?? "" },
-                                set: { appModel.speechVoiceIdentifier = $0.isEmpty ? nil : $0 }
+                                get: { voiceSettings.speechVoiceIdentifier ?? "" },
+                                set: { voiceSettings.speechVoiceIdentifier = $0.isEmpty ? nil : $0 }
                             )) {
                                 Text("Auto").tag("")
                                 ForEach(voices, id: \.identifier) { voice in
@@ -284,19 +288,19 @@ struct SettingsScreen: View {
                         HStack {
                             Text("Rate")
                             Spacer()
-                            Slider(value: $appModel.speechRate, in: AVSpeechUtteranceMinimumSpeechRate...AVSpeechUtteranceMaximumSpeechRate)
+                            Slider(value: $voiceSettings.speechRate, in: AVSpeechUtteranceMinimumSpeechRate...AVSpeechUtteranceMaximumSpeechRate)
                                 .frame(width: 220)
-                            Text(String(format: "%.2f", appModel.speechRate))
+                            Text(String(format: "%.2f", voiceSettings.speechRate))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                                 .frame(width: 44, alignment: .trailing)
                         }
 
-                        Toggle("Experimental Speak API (terminal say)", isOn: $appModel.experimentalSpeakApiEnabled)
+                        Toggle("Experimental Speak API (terminal say)", isOn: $voiceSettings.experimentalSpeakApiEnabled)
                             .toggleStyle(.switch)
                             .help("Enabled by default. Uses the terminal say command and waits for it to finish; turn it off to fall back to AVSpeechSynthesizer.")
 
-                        Toggle("Hands-free Client Voice window", isOn: $appModel.handsFreeClientVoiceEnabled)
+                        Toggle("Hands-free Client Voice window", isOn: $handsFreeClientVoiceSettings.isEnabled)
                             .toggleStyle(.switch)
                             .help("When enabled (default), opening a pending client ask will bring a floating window to the front and start voice recognition with auto-submit.")
 
@@ -304,17 +308,17 @@ struct SettingsScreen: View {
                             Text("Auto-submit delay")
                             Spacer()
                             Slider(
-                                value: $appModel.handsFreeClientVoiceDebounceSeconds,
+                                value: $handsFreeClientVoiceSettings.debounceSeconds,
                                 in: 0.5...5.0,
                                 step: 0.1
                             )
                             .frame(width: 220)
-                            Text(String(format: "%.1fs", appModel.handsFreeClientVoiceDebounceSeconds))
+                            Text(String(format: "%.1fs", handsFreeClientVoiceSettings.debounceSeconds))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                                 .frame(width: 52, alignment: .trailing)
                         }
-                        .disabled(!appModel.handsFreeClientVoiceEnabled)
+                        .disabled(!handsFreeClientVoiceSettings.isEnabled)
                         .help("How long the hands-free window waits after the last partial transcript before auto-submitting the response.")
 
                         HStack(spacing: 10) {
@@ -330,7 +334,7 @@ struct SettingsScreen: View {
                                 Task {
                                     do {
                                         _ = try await appModel.voiceAssistant.listen(
-                                            recognitionLocaleIdentifier: appModel.recognitionLocaleIdentifier,
+                                            recognitionLocaleIdentifier: voiceSettings.recognitionLocaleIdentifier,
                                             timeoutSeconds: 5
                                         )
                                     } catch {
@@ -372,9 +376,9 @@ struct SettingsScreen: View {
                                     do {
                                         try await appModel.voiceAssistant.speak(
                                             text,
-                                            language: appModel.speechLanguage,
-                                            voiceIdentifier: appModel.speechVoiceIdentifier,
-                                            rate: appModel.speechRate
+                                            language: voiceSettings.speechLanguage,
+                                            voiceIdentifier: voiceSettings.speechVoiceIdentifier,
+                                            rate: voiceSettings.speechRate
                                         )
                                     } catch {
                                         // Intentionally ignore here; the button resets after the task completes.

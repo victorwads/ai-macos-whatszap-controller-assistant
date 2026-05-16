@@ -14,15 +14,15 @@ final class AppModelMCPRuntimeAdapter: MCPServerRuntimeProviding {
     }
 
     func speechLanguage() -> String {
-        appModel?.speechLanguage ?? "pt-BR"
+        appModel?.voiceSettings.speechLanguage ?? "pt-BR"
     }
 
     func speechVoiceIdentifier() -> String? {
-        appModel?.speechVoiceIdentifier
+        appModel?.voiceSettings.speechVoiceIdentifier
     }
 
     func speechRate() -> Float {
-        appModel?.speechRate ?? AVSpeechUtteranceDefaultSpeechRate
+        appModel?.voiceSettings.speechRate ?? AVSpeechUtteranceDefaultSpeechRate
     }
 
     func applyMCPSendMessagePrefixIfNeeded(_ text: String) -> String {
