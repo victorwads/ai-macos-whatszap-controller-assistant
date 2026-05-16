@@ -71,7 +71,8 @@ when you are actively handling one subject and waiting for that specific person
 or group to answer. Use `wait_for_event()` when there is no current chat-specific
 blocker and the assistant should idle until any new event arrives. A global
 event may belong to a new context, so inspect it, resolve identity, and create
-or update a subject accordingly.
+or update a subject accordingly. If `wait_for_event()` returns a `client_prompt`
+event from the app's voice window, treat it as direct client input.
 
 Use voice tools only for the client. Use `ask_to_client(...)` when you need a
 decision, missing information, permission, or clarification. Use

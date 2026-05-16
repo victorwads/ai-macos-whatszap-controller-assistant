@@ -30,7 +30,32 @@ final class AppModelMCPRuntimeAdapter: MCPServerRuntimeProviding {
     }
 
     func refreshPendingClientAskCount() async {
-        await appModel?.refreshPendingClientAskCount()
+        guard let appModel else { return }
+        await appModel.refreshPendingClientAskCount()
+    }
+
+    func beginClientPromptWait() async -> UUID {
+        guard let appModel else { return UUID() }
+        return await appModel.beginClientPromptWait()
+    }
+
+    func endClientPromptWait(id: UUID) async {
+        guard let appModel else { return }
+        await appModel.endClientPromptWait(id: id)
+    }
+
+    func pendingClientPromptWaitCount() async -> Int {
+        appModel?.pendingClientPromptWaitCount ?? 0
+    }
+
+    func submitClientPrompt(_ text: String) async {
+        guard let appModel else { return }
+        await appModel.submitClientPrompt(text)
+    }
+
+    func consumeClientPrompt() async -> String? {
+        guard let appModel else { return nil }
+        return await appModel.consumeClientPrompt()
     }
 
     func sendMessageViaScheduler(_ text: String, to conversationId: String) async throws {
@@ -39,7 +64,8 @@ final class AppModelMCPRuntimeAdapter: MCPServerRuntimeProviding {
     }
 
     func ensureChatLoaded(chatId: String, reason: String) async {
-        await appModel?.ensureChatLoaded(chatId: chatId, reason: reason)
+        guard let appModel else { return }
+        await appModel.ensureChatLoaded(chatId: chatId, reason: reason)
     }
 
     func isBlocked(_ conversationName: String) -> Bool {

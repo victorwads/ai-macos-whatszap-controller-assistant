@@ -123,7 +123,9 @@ específico e esperando aquele chat responder. Use `wait_for_event()` quando nã
 houver um assunto bloqueado em chat específico e o assistente puder aguardar
 qualquer evento novo. Se `wait_for_event()` retornar mensagens de chat, crie ou
 atualize o assunto correspondente antes de qualquer `ask_to_client(...)`,
-`speak_to_client(...)` ou `send_message(...)`.
+`speak_to_client(...)` ou `send_message(...)`. Se a janela de voz do cliente
+devolver um prompt falado, trate isso como entrada direta do cliente, não como
+mensagem do WhatsApp.
 
 Use `speak_to_client(...)` para informar andamento, avisos e encerramentos. Use
 `ask_to_client(...)` para pedir dados, decisões, permissões ou esclarecimentos.

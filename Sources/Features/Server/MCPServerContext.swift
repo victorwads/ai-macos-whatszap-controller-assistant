@@ -40,6 +40,26 @@ extension MCPServerContext {
         await runtime.refreshPendingClientAskCount()
     }
 
+    func beginClientPromptWait() async -> UUID {
+        await runtime.beginClientPromptWait()
+    }
+
+    func endClientPromptWait(id: UUID) async {
+        await runtime.endClientPromptWait(id: id)
+    }
+
+    func pendingClientPromptWaitCount() async -> Int {
+        await runtime.pendingClientPromptWaitCount()
+    }
+
+    func submitClientPrompt(_ text: String) async {
+        await runtime.submitClientPrompt(text)
+    }
+
+    func consumeClientPrompt() async -> String? {
+        await runtime.consumeClientPrompt()
+    }
+
     func sendMessageViaScheduler(_ text: String, _ conversationId: String) async throws {
         try await runtime.sendMessageViaScheduler(text, to: conversationId)
     }

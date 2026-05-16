@@ -98,6 +98,7 @@ extension AppModel {
         ]
 
         pendingClientAskCount = 1
+        pendingClientPromptWaitCount = 1
         mcpServerRunning = false
         mcpServerStatusDescription = "Stopped (preview)"
         mcpServerHost = "localhost"

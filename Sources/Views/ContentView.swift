@@ -146,7 +146,23 @@ struct ContentView: View {
 
             PendingClientResponseBadge(
                 pendingCount: appModel.pendingClientAskCount,
-                onOpen: { selectedScreen = .clientVoice }
+                onOpen: {
+                    Task {
+                        await appModel.openPendingClientAskWindow()
+                    }
+                },
+                title: "Client response pending",
+                dotColor: .orange,
+                dotStrokeColor: nil,
+                backgroundColor: Color.orange.opacity(0.12),
+                helpText: "Open pending client ask"
+            )
+
+            WaitingForEventBadge(
+                pendingCount: appModel.pendingClientPromptWaitCount,
+                onOpen: {
+                    appModel.openPendingClientPromptWindow()
+                }
             )
 
             MicrophonePermissionBadge(

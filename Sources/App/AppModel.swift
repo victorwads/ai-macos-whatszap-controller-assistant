@@ -34,6 +34,7 @@ final class AppModel: ObservableObject {
     @Published var denyConversationNames: [String] = []
     @Published var allowConversationNames: [String] = []
     @Published var pendingClientAskCount = 0
+    @Published var pendingClientPromptWaitCount = 0
     @Published var microphoneAuthorized = true
     @Published var speechRecognitionAuthorized = true
     @Published var speechSynthesizerSpeaking = false
@@ -46,6 +47,7 @@ final class AppModel: ObservableObject {
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
     let parser = WhatsAppAppParser()
+    let clientPromptWaitRepository = ClientPromptWaitRepository.shared
     lazy var whatsappMessageSendCoordinator = WhatsAppMessageSendCoordinator(
         accessibility: accessibility,
         accessibilityScheduler: accessibilityScheduler,
@@ -152,13 +154,14 @@ final class AppModel: ObservableObject {
             refreshMicrophoneAuthorization()
             refreshSpeechRecognitionAuthorization()
             bindFeatureSettings()
-            Task { [weak self] in
-                await self?.markStaleClientVoiceAsLost()
-                await self?.refreshPendingClientAskCount()
-            }
-            Task { [weak self] in
-                await self?.loadPersistedServerCalls()
-            }
+        Task { [weak self] in
+            await self?.markStaleClientVoiceAsLost()
+            await self?.refreshPendingClientAskCount()
+            await self?.refreshPendingClientPromptWaitCount()
+        }
+        Task { [weak self] in
+            await self?.loadPersistedServerCalls()
+        }
             Task { [weak self] in
                 guard let self else { return }
                 await self.voiceAssistant.setExperimentalSpeakEnabled(self.voiceSettings.experimentalSpeakApiEnabled)
@@ -209,6 +212,29 @@ final class AppModel: ObservableObject {
         await maybeShowHandsFreeClientVoiceWindow()
     }
 
+    func refreshPendingClientPromptWaitCount() async {
+        pendingClientPromptWaitCount = await clientPromptWaitRepository.pendingWaitCount()
+    }
+
+    func beginClientPromptWait() async -> UUID {
+        let id = await clientPromptWaitRepository.beginWait()
+        await refreshPendingClientPromptWaitCount()
+        return id
+    }
+
+    func endClientPromptWait(id: UUID) async {
+        await clientPromptWaitRepository.endWait(id: id)
+        await refreshPendingClientPromptWaitCount()
+    }
+
+    func submitClientPrompt(_ text: String) async {
+        await clientPromptWaitRepository.submitPrompt(text)
+    }
+
+    func consumeClientPrompt() async -> String? {
+        await clientPromptWaitRepository.consumePrompt()
+    }
+
     private func markStaleClientVoiceAsLost() async {
         let markedCount = await clientVoiceEventsRepository.markPendingAsLost()
         guard markedCount > 0 else { return }
@@ -217,12 +243,26 @@ final class AppModel: ObservableObject {
 
     private func maybeShowHandsFreeClientVoiceWindow() async {
         guard handsFreeClientVoiceSettings.isEnabled else { return }
+        await showLatestPendingClientAskWindow(force: false)
+    }
+
+    func openPendingClientAskWindow() async {
+        await showLatestPendingClientAskWindow(force: true)
+    }
+
+    func openPendingClientPromptWindow() {
+        ClientVoicePromptWindowController.shared.show(appModel: self)
+    }
+
+    private func showLatestPendingClientAskWindow(force: Bool) async {
         let pending = await clientVoiceEventsRepository.list(limit: 50)
             .filter { $0.kind == .ask && $0.askStatus == .pending }
         guard let latest = pending.first else { return }
         let prompt = latest.prompt ?? ""
         guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        ClientVoiceHandsFreeWindowController.shared.show(appModel: self, askId: latest.id, prompt: prompt)
+        if force || handsFreeClientVoiceSettings.isEnabled {
+            ClientVoiceHandsFreeWindowController.shared.show(appModel: self, askId: latest.id, prompt: prompt)
+        }
     }
 
     func refreshMicrophoneAuthorization() {
