@@ -139,6 +139,11 @@ final class AccessibilityService {
         return raw.map { String(describing: $0) }
     }
 
+    func readComposeValue(in containerPath: [Int]) throws -> String? {
+        let composePath = try composeTextAreaPath(in: containerPath)
+        return try readValue(at: composePath)
+    }
+
     func readAllAttributes(at path: [Int]) throws -> [String: String] {
         guard let app = findWhatsAppApplication() else {
             throw AccessibilityError.whatsAppNotRunning
@@ -191,6 +196,16 @@ final class AccessibilityService {
         }
     }
 
+    func pressComposeTextAreaAXOnly(in containerPath: [Int]) throws {
+        let composePath = try composeTextAreaPath(in: containerPath)
+        try pressNodeAXOnly(at: composePath)
+    }
+
+    func focusComposeTextArea(in containerPath: [Int]) throws {
+        let composePath = try composeTextAreaPath(in: containerPath)
+        try focusNode(at: composePath)
+    }
+
     func pressEnterKey() throws {
         try activateWhatsApp()
         guard let source = CGEventSource(stateID: .combinedSessionState) else {
@@ -210,9 +225,29 @@ final class AccessibilityService {
         keyUp.post(tap: .cghidEventTap)
     }
 
+    func sendText(_ text: String, inComposeContainer containerPath: [Int]) throws {
+        try activateWhatsApp()
+        let composePath = try composeTextAreaPath(in: containerPath)
+        // Make sure the caret is really in the compose field. AXFocused alone isn't always enough.
+        try? pressNodeAXOnly(at: composePath)
+        try focusNode(at: composePath)
+        Thread.sleep(forTimeInterval: 0.05)
+        // Clear via AXValue to avoid global Cmd+A hitting the wrong app if focus is stolen.
+        // (We still use real input events for the actual text to trigger WhatsApp's change pipeline.)
+        try? setValue("", at: composePath)
+        Thread.sleep(forTimeInterval: 0.02)
+
+        do {
+            try typeTextViaUnicodeEvents(text)
+        } catch {
+            // Fallback: paste via clipboard (Cmd+V). This also tends to trigger input events.
+            try pasteTextViaClipboard(text)
+        }
+    }
+
     func sendText(_ text: String, to path: [Int]) throws {
         try activateWhatsApp()
-        // Make sure the caret is really in the compose field. AXFocused alone isn't always enough.
+        // Make sure the caret is really in the target field. AXFocused alone isn't always enough.
         try? pressNodeAXOnly(at: path)
         try focusNode(at: path)
         Thread.sleep(forTimeInterval: 0.05)
@@ -414,6 +449,27 @@ final class AccessibilityService {
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)
         return true
+    }
+
+    private func composeTextAreaPath(in containerPath: [Int]) throws -> [Int] {
+        guard let app = findWhatsAppApplication() else {
+            throw AccessibilityError.whatsAppNotRunning
+        }
+
+        let root = AXUIElementCreateApplication(app.processIdentifier)
+        guard let container = element(at: containerPath, from: root) else {
+            throw AccessibilityError.nodeNotFound
+        }
+
+        let children: [AXUIElement] = value(container, attribute: kAXChildrenAttribute) ?? []
+        guard let textAreaIndex = children.firstIndex(where: { child in
+            let role: String? = value(child, attribute: kAXRoleAttribute)
+            return role == "AXTextArea"
+        }) else {
+            throw AccessibilityError.nodeNotFound
+        }
+
+        return containerPath + [textAreaIndex]
     }
 
     private func value<T>(_ element: AXUIElement, attribute: String) -> T? {

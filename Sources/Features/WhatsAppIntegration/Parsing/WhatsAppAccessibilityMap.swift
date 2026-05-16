@@ -3,8 +3,8 @@ import Foundation
 struct WhatsAppAccessibilityMap {
     let chatListPath = "0.0.0.2.1.0"
     let messageListPath = "0.0.0.4.1.0"
-    // This path can shift between WhatsApp versions; keep it as a fast path only.
-    let composePath = "0.0.0.4.1.3"
+    // Stable anchor for the current conversation composer container.
+    let composeContainerPath = "0.0.0.4.1"
 
     func chatList(in root: RawAXNode) -> RawAXNode? {
         if let anchored = root.node(at: chatListPath),
@@ -29,10 +29,9 @@ struct WhatsAppAccessibilityMap {
     }
 
     func composeField(in root: RawAXNode) -> RawAXNode? {
-        if let anchored = root.node(at: composePath),
-           anchored.role == "AXTextArea",
-           anchored.nodeDescription?.contains("Compose message") == true {
-            return anchored
+        if let anchored = composeContainer(in: root),
+           let compose = composeTextArea(in: anchored) {
+            return compose
         }
 
         return root.firstDescendant { node in
@@ -42,6 +41,27 @@ struct WhatsAppAccessibilityMap {
             if desc.contains("mensagem") { return true } // Portuguese variants
             if desc.contains("message") { return true }
             return false
+        }
+    }
+
+    func composeContainer(in root: RawAXNode) -> RawAXNode? {
+        if let anchored = root.node(at: composeContainerPath),
+           anchored.role == "AXGroup" {
+            return anchored
+        }
+
+        return root.firstDescendant { node in
+            node.role == "AXGroup" && node.accessibilityPath == [0, 0, 0, 4, 1]
+        }
+    }
+
+    private func composeTextArea(in container: RawAXNode) -> RawAXNode? {
+        if let directChild = container.children.first(where: { $0.role == "AXTextArea" }) {
+            return directChild
+        }
+
+        return container.firstDescendant { node in
+            node.role == "AXTextArea"
         }
     }
 

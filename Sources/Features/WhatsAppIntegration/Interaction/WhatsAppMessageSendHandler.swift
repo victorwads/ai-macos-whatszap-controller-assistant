@@ -26,18 +26,18 @@ struct WhatsAppMessageSendHandler {
 
     func sendMessage(_ text: String, using accessibility: AccessibilityService) throws {
         let liveSnapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
-        guard let composePath = accessibilityMap.composeField(in: liveSnapshot.rootNode)?.accessibilityPath else {
+        guard let composeContainerPath = accessibilityMap.composeContainer(in: liveSnapshot.rootNode)?.accessibilityPath else {
             throw AccessibilityError.nodeNotFound
         }
 
         let normalizedTarget = normalizeComposeTextForComparison(text)
         var typedOK = false
         for attempt in 1...3 {
-            try accessibility.sendText(text, to: composePath)
+            try accessibility.sendText(text, inComposeContainer: composeContainerPath)
 
             var lastSeen: String?
             for _ in 0..<100 {
-                let current = (try? accessibility.readValue(at: composePath)).map(normalizeComposeTextForComparison(_:)) ?? ""
+                let current = (try? accessibility.readComposeValue(in: composeContainerPath)).map(normalizeComposeTextForComparison(_:)) ?? ""
                 if composeLooksLikeTarget(current, target: normalizedTarget) {
                     typedOK = true
                     break
@@ -58,13 +58,13 @@ struct WhatsAppMessageSendHandler {
             throw AccessibilityError.actionFailed(-3)
         }
 
-        try triggerSend(using: accessibility, composePath: composePath)
+        try triggerSend(using: accessibility, composeContainerPath: composeContainerPath)
     }
 
-    private func triggerSend(using accessibility: AccessibilityService, composePath: [Int]) throws {
+    private func triggerSend(using accessibility: AccessibilityService, composeContainerPath: [Int]) throws {
         try accessibility.ensureWhatsAppActive()
-        try? accessibility.pressNodeAXOnly(at: composePath)
-        try accessibility.focusNode(at: composePath)
+        try accessibility.pressComposeTextAreaAXOnly(in: composeContainerPath)
+        try accessibility.focusComposeTextArea(in: composeContainerPath)
         Thread.sleep(forTimeInterval: 0.05)
         try accessibility.pressEnterKey()
     }
