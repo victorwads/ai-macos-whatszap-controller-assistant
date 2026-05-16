@@ -9,7 +9,7 @@ extension AppModel {
     - list_unread_chats: List only the conversations with unread messages.
     - get_recent_messages: Load the most recent messages from a specific chat.
     - send_message: Send a message to a specific WhatsApp chat.
-    - wait_for_message: Wait for the next incoming message(s) and return any new messages received.
+    - wait_next_event / wait_for_message: Wait for the next incoming event or message and return any new messages received.
     - list_nicknames / save_nickname / delete_nickname: Manage nicknames for chats (e.g. “mom”, “partner”, “Leo”).
 
     Use Subjects to track multi-day operational threads:
@@ -19,7 +19,8 @@ extension AppModel {
 
     Use Memories to store long-term useful context:
 
-    - create_memory / list_memories / delete_memory: Manage memories.
+    - create_memory / get_memory / list_memories_by_tag / delete_memory: Manage memories using snake_case keys.
+    - Use get_memory for exact key lookups and list_memories_by_tag to group related context.
 
     If you need to notify or interact with the client, use:
 

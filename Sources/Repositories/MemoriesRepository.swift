@@ -29,10 +29,10 @@ actor MemoriesRepository {
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 
-    func create(title: String?, content: String?, tags: [String]?) throws -> MemoryEntry {
-        let trimmedTitle = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedTitle.isEmpty {
-            throw MemoriesRepositoryError.missingParameter("title")
+    func create(key: String?, content: String?, tags: [String]?) throws -> MemoryEntry {
+        let trimmedKey = (key ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedKey.isEmpty {
+            throw MemoriesRepositoryError.missingParameter("key")
         }
 
         let trimmedContent = (content ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -44,7 +44,7 @@ actor MemoriesRepository {
         let now = Date()
         let entry = MemoryEntry(
             id: UUID(),
-            title: trimmedTitle,
+            key: trimmedKey,
             content: trimmedContent,
             tags: (tags ?? []).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty },
             createdAt: now,

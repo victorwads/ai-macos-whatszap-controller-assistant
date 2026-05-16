@@ -28,7 +28,7 @@ struct MemoriesScreen: View {
             List(entries) { entry in
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(entry.title)
+                        Text(entry.key)
                             .font(.body.weight(.semibold))
 
                         if !entry.tags.isEmpty {

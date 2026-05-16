@@ -251,6 +251,17 @@ extension AppModel {
                 ]
             ),
             MCPToolDefinition(
+                name: "wait_next_event",
+                description: "Waits until the next event appears in memory and returns it. Compatibility alias for wait_for_message.",
+                inputSchema: [
+                    "type": .string("object"),
+                    "properties": .object([
+                        "chatId": .object(["type": .string("string")]),
+                        "afterMessageId": .object(["type": .string("string")])
+                    ])
+                ]
+            ),
+            MCPToolDefinition(
                 name: "get_instructions",
                 description: "Returns the assistant instructions configured in the app.",
                 inputSchema: [
@@ -287,23 +298,36 @@ extension AppModel {
             ),
             MCPToolDefinition(
                 name: "create_memory",
-                description: "Creates a new long-term memory entry.",
+                description: "Creates a new long-term memory entry keyed by `key`.",
                 inputSchema: [
                     "type": .string("object"),
                     "properties": .object([
-                        "title": .object(["type": .string("string")]),
+                        "key": .object(["type": .string("string")]),
                         "content": .object(["type": .string("string")]),
                         "tags": .object(["type": .string("array"), "items": .object(["type": .string("string")])])
                     ]),
-                    "required": .array([.string("title"), .string("content")])
+                    "required": .array([.string("key"), .string("content")])
                 ]
             ),
             MCPToolDefinition(
-                name: "list_memories",
-                description: "Lists memory entries.",
+                name: "get_memory",
+                description: "Fetches a memory entry by its key.",
                 inputSchema: [
                     "type": .string("object"),
-                    "properties": .object([:])
+                    "properties": .object([
+                        "key": .object(["type": .string("string")])
+                    ]),
+                    "required": .array([.string("key")])
+                ]
+            ),
+            MCPToolDefinition(
+                name: "list_memories_by_tag",
+                description: "Lists memory entries filtered by a specific tag, or all memories when tag is omitted.",
+                inputSchema: [
+                    "type": .string("object"),
+                    "properties": .object([
+                        "tag": .object(["type": .string("string")])
+                    ])
                 ]
             ),
             MCPToolDefinition(
@@ -508,10 +532,10 @@ extension AppModel {
             } catch {
                 return .failure(error)
             }
-        case "wait_for_message":
+        case "wait_for_message", "wait_next_event":
             // The MCP client/tooling may enforce its own call timeout (~120s). To preserve the
             // "no timeout" semantics at the workflow level, we long-poll in chunks and let the
-            // caller re-issue wait_for_message until it returns a message.
+            // caller re-issue wait_next_event until it returns a message.
             let result = await memoryStore.waitForNextMessage(
                 chatId: call.arguments["chatId"]?.stringValue ?? call.arguments["chat_id"]?.stringValue,
                 afterMessageId: call.arguments["afterMessageId"]?.stringValue,
@@ -621,7 +645,7 @@ extension AppModel {
         case "create_memory":
             do {
                 let entry = try await memoriesRepository.create(
-                    title: call.arguments["title"]?.stringValue,
+                    key: call.arguments["key"]?.stringValue,
                     content: call.arguments["content"]?.stringValue,
                     tags: call.arguments["tags"]?.arrayValue?.compactMap(\.stringValue)
                 )
@@ -632,11 +656,26 @@ extension AppModel {
             } catch {
                 return .failure(error)
             }
-        case "list_memories":
+        case "get_memory":
+            let rawKey = call.arguments["key"]?.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let rawKey, !rawKey.isEmpty else {
+                return .failure(MemoriesRepositoryError.missingParameter("key"))
+            }
             let entries = await memoriesRepository.list()
-            return .success(.object([
-                "entries": .array(entries.map(memoryEntryJSONValue))
-            ]))
+            if let entry = entries.first(where: { $0.key == rawKey }) {
+                return .success(.object(["entry": memoryEntryJSONValue(entry)]))
+            }
+            return .success(.object(["error": .string("Memory not found"), "key": .string(rawKey)]))
+        case "list_memories_by_tag":
+            let tag = call.arguments["tag"]?.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let entries = await memoriesRepository.list()
+            let filtered: [MemoryEntry]
+            if let tag, !tag.isEmpty {
+                filtered = entries.filter { entry in entry.tags.contains(tag) }
+            } else {
+                filtered = entries
+            }
+            return .success(.object(["entries": .array(filtered.map(memoryEntryJSONValue))]))
         case "delete_memory":
             let rawId = call.arguments["id"]?.stringValue
             guard let rawId, let id = UUID(uuidString: rawId) else {
@@ -751,7 +790,7 @@ extension AppModel {
     private func memoryEntryJSONValue(_ entry: MemoryEntry) -> JSONValue {
         .object([
             "id": .string(entry.id.uuidString),
-            "title": .string(entry.title),
+            "key": .string(entry.key),
             "content": .string(entry.content),
             "tags": .array(entry.tags.map(JSONValue.string)),
             "createdAt": .from(date: entry.createdAt),
