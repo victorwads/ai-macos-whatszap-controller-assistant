@@ -14,7 +14,7 @@ struct SearchContactChatsTool: MCPToolHandler {
         ],
         exampleParameters: [
             .init(name: "query", value: .string("Leonardo")),
-            .init(name: "limit", value: .number(5))
+            .init(name: "limit", value: .number(3))
         ],
         traits: [.readOnly]
     )
@@ -27,8 +27,8 @@ struct SearchContactChatsTool: MCPToolHandler {
             return .failure(MCPServerError.missingParameter("query"))
         }
 
-        let limit = max(1, arguments.int(for: "limit") ?? 5)
-        let matches = await MainActor.run {
+        let limit = max(1, arguments.int(for: "limit") ?? 3)
+        let chats = await MainActor.run {
             context.memoryStore.conversations
                 .filter { !context.isBlocked($0.name) }
                 .compactMap { conversation -> (ConversationSummary, Double)? in
@@ -41,18 +41,10 @@ struct SearchContactChatsTool: MCPToolHandler {
                     return lhs.0.name.localizedStandardCompare(rhs.0.name) == .orderedAscending
                 }
                 .prefix(limit)
-                .map { conversation, score in
-                    JSONValue.object([
-                        "score": .number(score),
-                        "chat": context.conversationJSONValue(conversation)
-                    ])
-                }
+                .map { conversation, _ in context.conversationJSONValue(conversation) }
         }
 
-        return .success(.object([
-            "query": .string(rawQuery),
-            "matches": .array(matches)
-        ]))
+        return .success(.object(["chats": .array(chats)]))
     }
 
     private static func searchScore(query: String, candidate: String) -> Double {
