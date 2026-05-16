@@ -74,12 +74,41 @@ struct WhatsAppConversationListParser {
             return nil
         }
 
-        return description
-            .split(separator: ",")
-            .first
-            .map(String.init)?
+        let normalized = description
             .normalizedAXText
             .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let fragments = normalized
+            .split(separator: ",")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard let first = fragments.first else {
+            return nil
+        }
+
+        // WhatsApp sometimes splits phone-number chats into comma-separated chunks
+        // such as "+ 5 5,5 1,9 6 0 0 0,0 9 3 5". Rebuild those rows so we do not
+        // truncate the chat name to only the first fragment.
+        if fragments.count > 1, fragments.allSatisfy({ Self.looksLikePhoneFragment($0) }) {
+            let rebuilt = fragments
+                .map(Self.compactPhoneFragment(_:))
+                .joined(separator: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return rebuilt.isEmpty ? first : rebuilt
+        }
+
+        return first
+    }
+
+    private static func compactPhoneFragment(_ fragment: String) -> String {
+        fragment
+            .replacingOccurrences(of: #"\s+"#, with: "", options: .regularExpression)
+    }
+
+    private static func looksLikePhoneFragment(_ fragment: String) -> Bool {
+        let compact = compactPhoneFragment(fragment)
+        return compact.range(of: #"^[+\d]+$"#, options: .regularExpression) != nil
     }
 
     private func parseConversationValue(_ value: String?) -> (preview: String?, timeText: String?, direction: MessageDirection) {

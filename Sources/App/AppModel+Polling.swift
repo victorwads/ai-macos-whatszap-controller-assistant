@@ -129,16 +129,17 @@ extension AppModel {
     }
 
     func openConversationAndCapture(_ targetConversation: ConversationSummary) async throws -> WhatsAppSnapshot {
+        let targetNameKey = WhatsAppParserSupport.chatNameComparisonKey(targetConversation.name)
         for attempt in 1...3 {
             let baselineSnapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             let baselineState = parser.parse(snapshot: baselineSnapshot, messageLimit: 10)
 
-            if baselineState.selectedChatName == targetConversation.name {
+            if WhatsAppParserSupport.chatNameComparisonKey(baselineState.selectedChatName) == targetNameKey {
                 return baselineSnapshot
             }
 
             let liveConversation = baselineState.conversations.first {
-                $0.id == targetConversation.id || $0.name == targetConversation.name
+                $0.id == targetConversation.id || WhatsAppParserSupport.chatNameComparisonKey($0.name) == targetNameKey
             } ?? targetConversation
 
             try interactor.selectConversation(liveConversation, using: accessibility)
@@ -146,7 +147,7 @@ extension AppModel {
 
             let updatedSnapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
             let updatedState = parser.parse(snapshot: updatedSnapshot, messageLimit: 10)
-            if updatedState.selectedChatName == targetConversation.name {
+            if WhatsAppParserSupport.chatNameComparisonKey(updatedState.selectedChatName) == targetNameKey {
                 return updatedSnapshot
             }
 

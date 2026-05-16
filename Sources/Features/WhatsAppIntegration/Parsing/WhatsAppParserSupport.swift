@@ -162,6 +162,23 @@ enum WhatsAppParserSupport {
         }
         return String(hash, radix: 16)
     }
+
+    static func chatNameComparisonKey(_ value: String?) -> String {
+        guard let value else {
+            return ""
+        }
+
+        let normalized = value
+            .normalizedAXText
+            .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: .current)
+            .lowercased()
+
+        return normalized
+            .unicodeScalars
+            .filter { CharacterSet.alphanumerics.contains($0) }
+            .map(String.init)
+            .joined()
+    }
 }
 
 extension String {
