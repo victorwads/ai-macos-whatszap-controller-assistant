@@ -205,7 +205,15 @@ struct SettingsScreen: View {
                                 .frame(width: 260)
                         }
 
-                        Text("Used only for MCP tool `send_message`; it will be formatted as `Name:\\nmessage`.")
+                        HStack {
+                            Text("Signature")
+                            Spacer()
+                            TextField("e.g. - Robozinho", text: $mcpSendPrefixSettings.sendMessageSignature)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 260)
+                        }
+
+                        Text("Used only for MCP tool `send_message`; messages can be formatted as `Name:\\nmessage\\nsignature`.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
