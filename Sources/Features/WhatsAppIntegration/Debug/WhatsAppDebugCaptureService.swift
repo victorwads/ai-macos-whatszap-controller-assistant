@@ -51,11 +51,13 @@ final class WhatsAppDebugCaptureService {
             let timestamp = Self.debugCaptureTimestamp(Date())
             let slug = Self.debugCaptureFileSlug(effectiveName)
             let fileURL = capturesDirectory.appendingPathComponent("\(timestamp)-\(slug).yaml")
+            let favorites = DebugTreeFavoritesRepository.shared.load()
             let contents = WhatsAppDebugArtifacts.captureYAML(
                 name: effectiveName,
                 focusPath: focusPath,
                 snapshot: snapshot,
-                screenState: screenState
+                screenState: screenState,
+                favorites: favorites
             )
             try contents.write(to: fileURL, atomically: true, encoding: .utf8)
 

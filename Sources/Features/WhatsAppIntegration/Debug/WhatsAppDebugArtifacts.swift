@@ -5,7 +5,8 @@ enum WhatsAppDebugArtifacts {
         name: String,
         focusPath: [Int],
         snapshot: WhatsAppSnapshot,
-        screenState: WhatsAppScreenState
+        screenState: WhatsAppScreenState,
+        favorites: [String: [Int]]
     ) -> String {
         var lines: [String] = []
         lines.append("whatsapp_capture:")
@@ -20,6 +21,18 @@ enum WhatsAppDebugArtifacts {
         lines.append("    compose_focused: \(yamlBool(screenState.composeFocused))")
         lines.append("    can_send_text: \(yamlBool(screenState.canSendText))")
         lines.append("    send_button_path: \(yamlPath(screenState.sendButtonPath))")
+        lines.append("    favorites:")
+
+        if favorites.isEmpty {
+            lines.append("      items: []")
+        } else {
+            lines.append("      items:")
+            for name in favorites.keys.sorted() {
+                let path = favorites[name] ?? []
+                lines.append("        - name: \(yamlScalar(name))")
+                lines.append("          path: \(yamlPath(path))")
+            }
+        }
 
         if screenState.conversations.isEmpty {
             lines.append("    conversations: []")
