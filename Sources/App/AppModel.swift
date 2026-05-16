@@ -2,7 +2,6 @@ import AVFoundation
 import AppKit
 import Combine
 import Foundation
-import MCP
 import Speech
 
 @MainActor
@@ -56,16 +55,39 @@ final class AppModel: ObservableObject {
     let parser = WhatsAppAppParser()
     let interactor = WhatsAppInteractor()
     let memoryStore = WhatsAppMemoryStore.shared
-    let mcpConnector = MCPHTTPServer()
+    lazy var mcpServerCoordinator: MCPServerCoordinator = {
+        let coordinator = MCPServerCoordinator(
+            dependencies: MCPServerContext(
+                runtime: AppModelMCPRuntimeAdapter(appModel: self),
+                memoryStore: memoryStore,
+                accessibility: accessibility,
+                accessibilityScheduler: accessibilityScheduler,
+                parser: parser,
+                interactor: interactor,
+                voiceAssistant: voiceAssistant,
+                nicknamesRepository: nicknamesRepository,
+                memoriesRepository: memoriesRepository,
+                subjectsRepository: subjectsRepository,
+                clientVoiceEventsRepository: clientVoiceEventsRepository
+            )
+        )
+
+        coordinator.setStateHandler { [weak self] state in
+            self?.handleMCPStateChange(state)
+        }
+
+        coordinator.setCallHandler { [weak self] entry in
+            self?.appendServerCall(entry)
+        }
+
+        return coordinator
+    }()
     let voiceAssistant = VoiceAssistant()
-    var mcpServer: Server?
-    var mcpTransport: StatelessHTTPServerTransport?
     var pollingTask: Task<Void, Never>?
     var permissionMonitorTask: Task<Void, Never>?
     var listSignaturesById: [String: String] = [:]
     let debugDirectory = URL(fileURLWithPath: "/tmp/AssistantMCPServer", isDirectory: true)
     var cancellables: Set<AnyCancellable> = []
-    var mcpRestartTask: Task<Void, Never>?
     var liveStatusTask: Task<Void, Never>?
     let serverCallsRepository = ServerCallsRepository.shared
     let nicknamesRepository = NicknamesRepository.shared
@@ -96,7 +118,6 @@ final class AppModel: ObservableObject {
             loadChatHistory()
             bindMemoryStore()
             bindChatHistoryPersistence()
-            configureMCPConnector()
             refreshMicrophoneAuthorization()
             refreshSpeechRecognitionAuthorization()
             Task { [weak self] in
