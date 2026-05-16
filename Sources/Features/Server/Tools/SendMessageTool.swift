@@ -37,8 +37,8 @@ struct SendMessageTool: MCPToolHandler {
         }
 
         do {
-            let prefixedTexts = texts.map { context.applyMCPSendMessagePrefixIfNeeded($0) }
-            try await context.sendMessagesViaScheduler(prefixedTexts, chatId)
+            let formattedTexts = context.formattedMCPSendMessages(for: texts)
+            try await context.sendMessagesViaScheduler(formattedTexts, chatId)
             let results: [JSONValue] = texts.map { text in
                 .object([
                     "ok": .bool(true),

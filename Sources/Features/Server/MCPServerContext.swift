@@ -32,8 +32,8 @@ extension MCPServerContext {
         runtime.speechRate()
     }
 
-    func applyMCPSendMessagePrefixIfNeeded(_ text: String) -> String {
-        runtime.applyMCPSendMessagePrefixIfNeeded(text)
+    func formattedMCPSendMessages(for texts: [String]) -> [String] {
+        runtime.formattedMCPSendMessages(for: texts)
     }
 
     func refreshPendingClientAskCount() async {

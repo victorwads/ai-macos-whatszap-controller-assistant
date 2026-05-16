@@ -25,8 +25,8 @@ final class AppModelMCPRuntimeAdapter: MCPServerRuntimeProviding {
         appModel?.voiceSettings.speechRate ?? AVSpeechUtteranceDefaultSpeechRate
     }
 
-    func applyMCPSendMessagePrefixIfNeeded(_ text: String) -> String {
-        appModel?.applyMCPSendMessagePrefixIfNeeded(text) ?? text
+    func formattedMCPSendMessages(for texts: [String]) -> [String] {
+        appModel?.formattedMCPSendMessages(for: texts) ?? texts
     }
 
     func refreshPendingClientAskCount() async {

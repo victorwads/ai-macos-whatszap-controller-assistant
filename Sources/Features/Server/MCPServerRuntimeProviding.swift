@@ -6,7 +6,7 @@ protocol MCPServerRuntimeProviding {
     func speechLanguage() -> String
     func speechVoiceIdentifier() -> String?
     func speechRate() -> Float
-    func applyMCPSendMessagePrefixIfNeeded(_ text: String) -> String
+    func formattedMCPSendMessages(for texts: [String]) -> [String]
     func refreshPendingClientAskCount() async
     func beginClientPromptWait() async -> UUID
     func endClientPromptWait(id: UUID) async

@@ -213,7 +213,7 @@ struct SettingsScreen: View {
                                 .frame(width: 260)
                         }
 
-                        Text("Used only for MCP tool `send_message`; messages can be formatted as `Name:\\nmessage\\nsignature`.")
+                        Text("Used only for MCP tool `send_message`; when sending multiple messages, the assistant name is sent as a header message and the signature as a footer message.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 

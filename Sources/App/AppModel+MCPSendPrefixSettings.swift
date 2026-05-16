@@ -6,7 +6,7 @@ extension AppModel {
         mcpSendPrefixSettings.assistantName
     }
 
-    func applyMCPSendMessagePrefixIfNeeded(_ text: String) -> String {
-        mcpSendPrefixSettings.applyPrefixIfNeeded(text)
+    func formattedMCPSendMessages(for texts: [String]) -> [String] {
+        mcpSendPrefixSettings.formattedMessages(for: texts)
     }
 }

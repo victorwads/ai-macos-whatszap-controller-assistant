@@ -30,21 +30,23 @@ final class MCPSendPrefixSettingsModel: ObservableObject {
         sendMessageSignature.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    func applyPrefixIfNeeded(_ text: String) -> String {
-        let prefix = assistantName
-        let suffix = signature
+    func formattedMessages(for texts: [String]) -> [String] {
+        let cleanedTexts = texts.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        guard !cleanedTexts.isEmpty else { return [] }
 
-        guard !prefix.isEmpty || !suffix.isEmpty else { return text }
+        if cleanedTexts.count == 1 {
+            return [formattedSingleMessage(cleanedTexts[0])]
+        }
 
-        var parts: [String] = []
-        if !prefix.isEmpty {
-            parts.append("\(prefix):")
+        var messages: [String] = []
+        if !assistantName.isEmpty {
+            messages.append("\(assistantName):")
         }
-        parts.append(text)
-        if !suffix.isEmpty {
-            parts.append(suffix)
+        messages.append(contentsOf: cleanedTexts)
+        if !signature.isEmpty {
+            messages.append(signature)
         }
-        return parts.joined(separator: "\n")
+        return messages
     }
 
     private func loadStoredValue() {
@@ -71,5 +73,22 @@ final class MCPSendPrefixSettingsModel: ObservableObject {
 
     private func persistStoredValue() {
         repository.save(assistantName: assistantName, signature: signature)
+    }
+
+    private func formattedSingleMessage(_ text: String) -> String {
+        let prefix = assistantName
+        let suffix = signature
+
+        guard !prefix.isEmpty || !suffix.isEmpty else { return text }
+
+        var parts: [String] = []
+        if !prefix.isEmpty {
+            parts.append("\(prefix):")
+        }
+        parts.append(text)
+        if !suffix.isEmpty {
+            parts.append(suffix)
+        }
+        return parts.joined(separator: "\n")
     }
 }
