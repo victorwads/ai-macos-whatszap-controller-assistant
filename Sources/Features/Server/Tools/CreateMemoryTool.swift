@@ -12,7 +12,13 @@ struct CreateMemoryTool: MCPToolHandler {
                 "tags": .object(["type": .string("array"), "items": .object(["type": .string("string")])])
             ]),
             "required": .array([.string("key"), .string("content")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "key", value: .string("test_memory_key")),
+            .init(name: "content", value: .string("This is a preview memory entry.")),
+            .init(name: "tags", value: .array([.string("test"), .string("preview")]))
+        ],
+        traits: [.writesState]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

@@ -20,7 +20,21 @@ struct CreateSubjectTool: MCPToolHandler {
                 "calendarEventId": .object(["type": .string("string")])
             ]),
             "required": .array([.string("title"), .string("summary"), .string("initialRequest")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "title", value: .string("Preview subject")),
+            .init(name: "summary", value: .string("Subject created from the tools browser preview.")),
+            .init(name: "initialRequest", value: .string("Build the new server tools browser.")),
+            .init(name: "details", value: .string("Optional supporting details for the subject.")),
+            .init(name: "priority", value: .number(1)),
+            .init(name: "participants", value: .array([.string("Codex")])),
+            .init(name: "nextSteps", value: .array([.string("Validate the preview")])),
+            .init(name: "eventLog", value: .array([])),
+            .init(name: "whatsappChatId", value: .string("chat-1")),
+            .init(name: "gmailThreadId", value: .string("")),
+            .init(name: "calendarEventId", value: .string(""))
+        ],
+        traits: [.writesState]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

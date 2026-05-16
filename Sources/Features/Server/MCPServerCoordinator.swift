@@ -2,7 +2,7 @@ import Foundation
 import MCP
 
 @MainActor
-final class MCPServerCoordinator {
+final class MCPServerCoordinator: MCPToolExecutionProviding {
     private let dependencies: MCPServerContext
     private let connector = MCPHTTPServer()
     private var server: Server?
@@ -139,17 +139,37 @@ final class MCPServerCoordinator {
         return await tool.handle(call, context: dependencies)
     }
 
+    func executeTool(name: String, arguments: [String: JSONValue]) async -> Result<JSONValue, Error> {
+        await callTool(MCPToolCall(name: name, arguments: arguments))
+    }
+
     private func makeMCPTool(_ definition: MCPToolDefinition) -> Tool {
         let schema = JSONValue.object(definition.inputSchema)
+        let annotations = Tool.Annotations(
+            title: definition.name.replacingOccurrences(of: "_", with: " ").capitalized,
+            readOnlyHint: definition.traits.contains(.readOnly) ? true : nil,
+            destructiveHint: definition.traits.contains(.writesState) ? true : nil,
+            idempotentHint: definition.traits.contains(.readOnly) ? true : nil,
+            openWorldHint: definition.traits.contains(.sideEffect) || definition.traits.contains(.blocking) ? true : nil
+        )
+        let meta = Metadata(additionalFields: [
+            "exampleParameters": .array(definition.exampleParameters.map { example in
+                .object([
+                    "name": .string(example.name),
+                    "value": Self.mcpValue(from: example.value)
+                ])
+            }),
+            "traits": .array(definition.traits.map { .string($0.rawValue) })
+        ])
         return Tool(
             name: definition.name,
-            title: nil,
+            title: annotations.title,
             description: definition.description,
             inputSchema: Self.mcpValue(from: schema),
-            annotations: nil,
+            annotations: annotations.isEmpty ? nil : annotations,
             outputSchema: nil,
             icons: nil,
-            _meta: nil
+            _meta: meta
         )
     }
 

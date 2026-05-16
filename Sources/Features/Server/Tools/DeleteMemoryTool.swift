@@ -10,7 +10,11 @@ struct DeleteMemoryTool: MCPToolHandler {
                 "id": .object(["type": .string("string")])
             ]),
             "required": .array([.string("id")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "id", value: .string("11111111-1111-1111-1111-111111111111"))
+        ],
+        traits: [.writesState]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

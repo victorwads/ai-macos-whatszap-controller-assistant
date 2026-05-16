@@ -15,7 +15,13 @@ struct SendMessageTool: MCPToolHandler {
                 ])
             ]),
             "required": .array([.string("chatId")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "chatId", value: .string("chat-1")),
+            .init(name: "text", value: .string("Testing send_message from the tools browser.")),
+            .init(name: "messages", value: .array([.string("Testing send_message from the tools browser.")]))
+        ],
+        traits: [.writesState, .sideEffect]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

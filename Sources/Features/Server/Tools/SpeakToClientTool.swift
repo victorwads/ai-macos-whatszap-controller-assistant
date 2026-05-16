@@ -13,7 +13,14 @@ struct SpeakToClientTool: MCPToolHandler {
                 "rate": .object(["type": .string("number")])
             ]),
             "required": .array([.string("text")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "text", value: .string("Testing speak_to_client from the tools browser.")),
+            .init(name: "language", value: .string("en-US")),
+            .init(name: "voiceIdentifier", value: .string("")),
+            .init(name: "rate", value: .number(0.5))
+        ],
+        traits: [.sideEffect]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

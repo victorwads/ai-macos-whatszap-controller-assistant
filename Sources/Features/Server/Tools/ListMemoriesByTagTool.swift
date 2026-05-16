@@ -9,7 +9,11 @@ struct ListMemoriesByTagTool: MCPToolHandler {
             "properties": .object([
                 "tag": .object(["type": .string("string")])
             ])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "tag", value: .string("test"))
+        ],
+        traits: [.readOnly]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

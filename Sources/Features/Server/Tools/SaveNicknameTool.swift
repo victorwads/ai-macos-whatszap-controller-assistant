@@ -12,7 +12,13 @@ struct SaveNicknameTool: MCPToolHandler {
                 "nickname": .object(["type": .string("string")])
             ]),
             "required": .array([.string("chatId"), .string("nickname")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "chatId", value: .string("chat-1")),
+            .init(name: "chatName", value: .string("Family")),
+            .init(name: "nickname", value: .string("mom-test"))
+        ],
+        traits: [.writesState]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

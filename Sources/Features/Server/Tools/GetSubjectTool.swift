@@ -10,7 +10,11 @@ struct GetSubjectTool: MCPToolHandler {
                 "id": .object(["type": .string("string")])
             ]),
             "required": .array([.string("id")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "id", value: .string("22222222-2222-2222-2222-222222222222"))
+        ],
+        traits: [.readOnly]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

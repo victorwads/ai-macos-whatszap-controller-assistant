@@ -11,7 +11,12 @@ struct GetRecentMessagesTool: MCPToolHandler {
                 "limit": .object(["type": .string("number")])
             ]),
             "required": .array([.string("chatId")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "chatId", value: .string("chat-1")),
+            .init(name: "limit", value: .number(5))
+        ],
+        traits: [.readOnly]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

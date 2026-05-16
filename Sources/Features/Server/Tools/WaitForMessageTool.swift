@@ -10,7 +10,12 @@ struct WaitForMessageTool: MCPToolHandler {
                 "chatId": .object(["type": .string("string")]),
                 "afterMessageId": .object(["type": .string("string")])
             ])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "chatId", value: .string("chat-1")),
+            .init(name: "afterMessageId", value: .string("m2"))
+        ],
+        traits: [.blocking]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

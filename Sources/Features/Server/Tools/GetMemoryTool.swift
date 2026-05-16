@@ -10,7 +10,11 @@ struct GetMemoryTool: MCPToolHandler {
                 "key": .object(["type": .string("string")])
             ]),
             "required": .array([.string("key")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "key", value: .string("client_identity"))
+        ],
+        traits: [.readOnly]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

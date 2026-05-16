@@ -10,7 +10,11 @@ struct DeleteNicknameTool: MCPToolHandler {
                 "id": .object(["type": .string("string")])
             ]),
             "required": .array([.string("id")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "id", value: .string("33333333-3333-3333-3333-333333333333"))
+        ],
+        traits: [.writesState]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

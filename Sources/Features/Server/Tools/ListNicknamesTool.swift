@@ -9,7 +9,11 @@ struct ListNicknamesTool: MCPToolHandler {
             "properties": .object([
                 "chatId": .object(["type": .string("string")])
             ])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "chatId", value: .string("chat-1"))
+        ],
+        traits: [.readOnly]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

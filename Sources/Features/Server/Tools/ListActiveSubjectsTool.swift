@@ -7,7 +7,9 @@ struct ListActiveSubjectsTool: MCPToolHandler {
         inputSchema: [
             "type": .string("object"),
             "properties": .object([:])
-        ]
+        ],
+        exampleParameters: [],
+        traits: [.readOnly]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

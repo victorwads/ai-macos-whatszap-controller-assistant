@@ -12,7 +12,13 @@ struct AskToClientTool: MCPToolHandler {
                 "voiceIdentifier": .object(["type": .string("string")])
             ]),
             "required": .array([.string("prompt")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "prompt", value: .string("Testing ask_to_client in English. Please answer briefly.")),
+            .init(name: "language", value: .string("en-US")),
+            .init(name: "voiceIdentifier", value: .string(""))
+        ],
+        traits: [.sideEffect, .blocking]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {

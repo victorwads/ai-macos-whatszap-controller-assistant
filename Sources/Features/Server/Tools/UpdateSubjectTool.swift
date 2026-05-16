@@ -23,7 +23,24 @@ struct UpdateSubjectTool: MCPToolHandler {
                 "calendarEventId": .object(["type": .string("string")])
             ]),
             "required": .array([.string("id")])
-        ]
+        ],
+        exampleParameters: [
+            .init(name: "id", value: .string("22222222-2222-2222-2222-222222222222")),
+            .init(name: "title", value: .string("Preview subject updated")),
+            .init(name: "summary", value: .string("Updated from the preview browser.")),
+            .init(name: "initialRequest", value: .string("Refresh the subject data.")),
+            .init(name: "details", value: .string("Expanded with more context.")),
+            .init(name: "status", value: .string("active")),
+            .init(name: "priority", value: .number(2)),
+            .init(name: "participants", value: .array([.string("Codex"), .string("Client")])),
+            .init(name: "nextSteps", value: .array([.string("Review")])),
+            .init(name: "eventLog", value: .array([])),
+            .init(name: "whatsappChatId", value: .string("chat-1")),
+            .init(name: "whatsappAfterMessageId", value: .string("m2")),
+            .init(name: "gmailThreadId", value: .string("")),
+            .init(name: "calendarEventId", value: .string(""))
+        ],
+        traits: [.writesState]
     )
 
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {
