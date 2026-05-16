@@ -11,22 +11,7 @@ struct WhatsAppInteractor {
     }
 
     @MainActor
-    func clearComposeIfNeeded(using accessibility: AccessibilityService) throws {
-        try messageSendHandler.clearComposeIfNeeded(using: accessibility)
-    }
-
-    @MainActor
-    func sendMessageConfirmed(
-        _ text: String,
-        expectedChatName: String,
-        using accessibility: AccessibilityService,
-        parser: WhatsAppAppParser
-    ) async throws -> (snapshot: WhatsAppSnapshot, state: WhatsAppScreenState) {
-        try await messageSendHandler.sendMessageConfirmed(
-            text,
-            expectedChatName: expectedChatName,
-            using: accessibility,
-            parser: parser
-        )
+    func sendMessage(_ text: String, using accessibility: AccessibilityService) throws {
+        try messageSendHandler.sendMessage(text, using: accessibility)
     }
 }

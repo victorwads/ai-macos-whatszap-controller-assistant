@@ -72,10 +72,37 @@ struct ConversationsScreen: View {
                 },
                 onSend: {
                     Task {
-                        await appModel.sendMessageToSelectedChat()
+                        await sendSelectedChatMessage()
                     }
                 }
             )
+        }
+    }
+
+    @MainActor
+    private func sendSelectedChatMessage() async {
+        let trimmedMessage = appModel.messageDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedMessage.isEmpty else {
+            appModel.appendLog("Cannot send an empty message.", level: .warning)
+            return
+        }
+
+        guard let selectedChatState = appModel.selectedChatState else {
+            appModel.appendLog("No selected conversation available to send a message.", level: .warning)
+            return
+        }
+
+        appModel.isSendingMessage = true
+        defer { appModel.isSendingMessage = false }
+
+        do {
+            try await appModel.whatsappMessageSendCoordinator.sendMessageViaScheduler(
+                trimmedMessage,
+                to: selectedChatState.chat.id
+            )
+            appModel.messageDraft = ""
+        } catch {
+            appModel.appendLog("Failed to send message: \(error.localizedDescription)", level: .error)
         }
     }
 

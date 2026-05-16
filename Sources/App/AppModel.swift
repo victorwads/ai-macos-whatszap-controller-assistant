@@ -46,6 +46,40 @@ final class AppModel: ObservableObject {
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
     let parser = WhatsAppAppParser()
+    lazy var whatsappMessageSendCoordinator = WhatsAppMessageSendCoordinator(
+        accessibility: accessibility,
+        accessibilityScheduler: accessibilityScheduler,
+        parser: parser,
+        interactor: interactor,
+        inputLockSettings: inputLockSettings,
+        isPolling: { [weak self] in
+            self?.isPolling ?? false
+        },
+        stopPolling: { [weak self] in
+            self?.stopPolling()
+        },
+        startPolling: { [weak self] in
+            self?.startPolling()
+        },
+        resolveConversation: { [weak self] conversationId in
+            self?.memoryStore.conversation(for: conversationId)
+        },
+        isBlocked: { [weak self] conversationName in
+            self?.isBlocked(conversationName) ?? false
+        },
+        openConversationAndCapture: { [weak self] conversation in
+            guard let self else {
+                throw CancellationError()
+            }
+            return try await self.openConversationAndCapture(conversation)
+        },
+        updateSelectedChatState: { [weak self] screenState, preferredConversation in
+            self?.updateSelectedChatState(from: screenState, preferredConversation: preferredConversation)
+        },
+        appendLog: { [weak self] message, level in
+            self?.appendLog(message, level: level)
+        }
+    )
     lazy var whatsAppDebugService = WhatsAppDebugCaptureService(
         accessibility: accessibility,
         parser: parser,

@@ -17,7 +17,10 @@ struct SendMessageTool: MCPToolHandler {
         ],
         exampleParameters: [
             .init(name: "chatId", value: .string("chat-1")),
-            .init(name: "messages", value: .array([.string("Testing send_message from the tools browser.")]))
+            .init(name: "messages", value: .array([
+                .string("Testing send_message from the tools browser."),
+                .string("Another batch message"),
+            ]))
         ],
         traits: [.writesState, .sideEffect]
     )
