@@ -1,9 +1,9 @@
 import Foundation
 
-struct FinishSubjectTool: MCPToolHandler {
+struct ResolveSubjectTool: MCPToolHandler {
     static let definition = MCPToolDefinition(
-        name: "finish_subject",
-        description: "Marks a subject as finished by id.",
+        name: "resolve_subject",
+        description: "Marks a subject as resolved by id.",
         inputSchema: [
             "type": .string("object"),
             "properties": .object([
@@ -24,7 +24,7 @@ struct FinishSubjectTool: MCPToolHandler {
         }
 
         do {
-            let entry = try await context.subjectsRepository.finish(id: id)
+            let entry = try await context.subjectsRepository.resolve(id: id)
             return .success(.object([
                 "ok": .bool(true),
                 "entry": context.subjectEntryJSONValue(entry)

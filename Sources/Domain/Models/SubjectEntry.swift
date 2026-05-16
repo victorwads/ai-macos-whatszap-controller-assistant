@@ -2,7 +2,25 @@ import Foundation
 
 enum SubjectStatus: String, Codable, CaseIterable {
     case active
-    case finished
+    case resolved
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        switch rawValue {
+        case "active":
+            self = .active
+        case "finished", "resolved":
+            self = .resolved
+        default:
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid SubjectStatus value: \(rawValue)")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 struct SubjectEntry: Codable, Identifiable, Equatable {

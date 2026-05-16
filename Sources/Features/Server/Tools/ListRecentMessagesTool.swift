@@ -1,9 +1,9 @@
 import Foundation
 
-struct GetRecentMessagesTool: MCPToolHandler {
+struct ListRecentMessagesTool: MCPToolHandler {
     static let definition = MCPToolDefinition(
-        name: "get_recent_messages",
-        description: "Returns recent messages for a mapped chat.",
+        name: "list_recent_messages",
+        description: "Lists recent messages for a mapped chat.",
         inputSchema: [
             "type": .string("object"),
             "properties": .object([
@@ -32,7 +32,7 @@ struct GetRecentMessagesTool: MCPToolHandler {
         }
         let cachedChatState = await MainActor.run { context.memoryStore.chatState(for: chatId) }
         if cachedChatState == nil {
-            await context.ensureChatLoaded(chatId, "get_recent_messages")
+            await context.ensureChatLoaded(chatId, "list_recent_messages")
         }
 
         let chatState = await MainActor.run { context.memoryStore.chatState(for: chatId) }

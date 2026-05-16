@@ -146,7 +146,7 @@ final class MCPServerCoordinator: MCPToolExecutionProviding {
     private func makeMCPTool(_ definition: MCPToolDefinition) -> Tool {
         let schema = JSONValue.object(definition.inputSchema)
         let annotations = Tool.Annotations(
-            title: definition.name.replacingOccurrences(of: "_", with: " ").capitalized,
+        title: definition.name.replacingOccurrences(of: "_", with: " ").capitalized,
             readOnlyHint: definition.traits.contains(.readOnly) ? true : nil,
             destructiveHint: definition.traits.contains(.writesState) ? true : nil,
             idempotentHint: definition.traits.contains(.readOnly) ? true : nil,

@@ -23,8 +23,8 @@
 		118445B9254BCA6146FAD94A /* SpeakToClientTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3C5AB9FD11E1EEC2C6A303 /* SpeakToClientTool.swift */; };
 		11A1C5D94345B56431F30431 /* DeleteNicknameTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5559313273CE664D19DEA9EB /* DeleteNicknameTool.swift */; };
 		1493CEDABDF3B8FA4E2BF648 /* WhatsAppMessageSendHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D8F921EB0B773327D175B2 /* WhatsAppMessageSendHandler.swift */; };
+		14EACAD73FF1E19A2F610C85 /* GetMemoriesByTagTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52D7D88930D856672138461 /* GetMemoriesByTagTool.swift */; };
 		15C72385E1CE7376EA31512B /* PendingClientResponseBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B6872936161AF0369A47444 /* PendingClientResponseBadge.swift */; };
-		17773365092ECD7EBDBE09D5 /* FinishSubjectTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7406556C46F147CBFE045C48 /* FinishSubjectTool.swift */; };
 		1C52326E5B84D92DBD89AC95 /* ClientVoiceHandsFreeWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F75F4728380B0FE736A387 /* ClientVoiceHandsFreeWindow.swift */; };
 		2016CEEE742DDFFAFC5AAE3C /* WaitForMessageTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = A077140F302DA2C7EB7351E1 /* WaitForMessageTool.swift */; };
 		23B0E47A0730E63BA867B84D /* DeleteMemoryTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C58088785FA8CD37641B6D7C /* DeleteMemoryTool.swift */; };
@@ -61,11 +61,11 @@
 		589AE31B1557958FB9D14AF3 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0AEBC08F2724D035EAA1D0C /* JSONValue.swift */; };
 		58B190C829FAC03580010274 /* MCPServerCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C4E09008FDF039571F71DC9 /* MCPServerCoordinator.swift */; };
 		59B650CA32FC156782ADC83F /* ConversationRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A286BCAF8C4D7793A33CB49 /* ConversationRow.swift */; };
-		5AE5E42375F4B7F6E999E86D /* ListMemoriesByTagTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B9C1328CDA34746F0091C0B /* ListMemoriesByTagTool.swift */; };
 		5B1555A8F78D7DD7A38E2743 /* InputLockSettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3D85EA16758BDC9516202C /* InputLockSettingsModel.swift */; };
 		5C1010B174B6393A744AF4B8 /* ConversationAccessRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB84F6A885CD2DA24655E2B2 /* ConversationAccessRepository.swift */; };
 		5C6BD296C257986D23DC8CF0 /* MCPToolHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96273EA5302E7F11ECAE03DC /* MCPToolHandler.swift */; };
 		5D96B066A5B7CD67F72BAD51 /* DebugTreeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF3B3D35020BAA396722F5C /* DebugTreeScreen.swift */; };
+		5DB15FC41CD52251FA15E829 /* ListChatsBySearchTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E0580F9F7A4AA5262BFC250 /* ListChatsBySearchTool.swift */; };
 		634A02E5EED921D843073746 /* MemoriesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB34A1C65F6E156D140ADF0 /* MemoriesScreen.swift */; };
 		6962BF9334233A4C5DBDE31E /* WhatsAppSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E03D02632604B4477CCB177 /* WhatsAppSnapshot.swift */; };
 		69923229380F56E7DFC91C87 /* GetMemoryTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80C04CAB7015954F28EE2F1 /* GetMemoryTool.swift */; };
@@ -99,6 +99,7 @@
 		93CDEBAD57981DC5CDD89B6F /* AppModel+MemoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 159D16DA0815AED8EFF3B3D3 /* AppModel+MemoryStore.swift */; };
 		940AEA5F8ABEFE84B6E414A2 /* AppModel+ServerCalls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E627CC5A274ABB5EB954069 /* AppModel+ServerCalls.swift */; };
 		98BABD36E119CBD81E74AB81 /* MCPHTTPServerHosting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFC1B2EBABC7641C04EECD0 /* MCPHTTPServerHosting.swift */; };
+		9E3ABD76F04234D5D318A7B0 /* ResolveSubjectTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10BA51D067BD96A012E57504 /* ResolveSubjectTool.swift */; };
 		9EAD7C7A911C548C02C90FD1 /* AppModel+MCPSendPrefixSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58D9C97469284E32BEDE35E5 /* AppModel+MCPSendPrefixSettings.swift */; };
 		9FC55A46198E3522B5DEC34C /* MCPSendPrefixRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4CB52189AFDCEBC4FC2BB2 /* MCPSendPrefixRepository.swift */; };
 		A03E4BD027291C88768A0247 /* ConversationSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676798AC7526941A54AF6367 /* ConversationSummary.swift */; };
@@ -108,12 +109,11 @@
 		A4241C0EA05BF807E0DFBE4F /* WaitForChatMessageTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14866B3EDC65001356E59F30 /* WaitForChatMessageTool.swift */; };
 		A54099CBC647FAA37B83FA27 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55AABA7182BB49937A7E5CF6 /* Message.swift */; };
 		A5726B5B9E23AF285F613D7B /* WhatsAppParserSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A46C6382697F003DBE2D602E /* WhatsAppParserSupport.swift */; };
-		A94ED30BE122587C0758DF4A /* GetRecentMessagesTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41A61E7855078AFD2E3BA3B /* GetRecentMessagesTool.swift */; };
+		A7AF71BE2482536162EF6468 /* ListRecentMessagesTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2464E4A775CA9D03BAFA06BB /* ListRecentMessagesTool.swift */; };
 		AB422A91528CC7A333981283 /* MemoriesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99EA6DFEF45661F429EE1A29 /* MemoriesRepository.swift */; };
 		AD013E0648E1593703B7C8CF /* AssistantMCPServerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4D61B6655412532014B3F3 /* AssistantMCPServerApp.swift */; };
 		AD09BC7071BFD2EBF431F7D9 /* SendMessageTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B58FC9E12E5442C96F757E /* SendMessageTool.swift */; };
 		AD7C349DA393BCFBBBCABE10 /* ServerToolBrowserModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A019EB08E1C5BA3401AF26EE /* ServerToolBrowserModels.swift */; };
-		B161521753F62DB1ACF30339 /* SearchContactChatsTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D553537463AAAAB4F7F648 /* SearchContactChatsTool.swift */; };
 		B35D848909A9ED9D04AF4C5C /* NicknamesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE57E91463CC8FFD8DCCE839 /* NicknamesRepository.swift */; };
 		B7BAA58D1B5458FDD42E6E82 /* MCPSendPrefixSettingsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B29FCB355C2AEFC00993CC5 /* MCPSendPrefixSettingsModel.swift */; };
 		B9FBC5B690E1136BA1F44D7D /* AppModel+ConversationAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C1561537E3C56BAA93E8124 /* AppModel+ConversationAccess.swift */; };
@@ -144,6 +144,7 @@
 		073F3299EE4170E955B4E48E /* ClientVoiceHandsFreeWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientVoiceHandsFreeWindowController.swift; sourceTree = "<group>"; };
 		08A045700F2704850EF2B413 /* ListActiveSubjectsTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListActiveSubjectsTool.swift; sourceTree = "<group>"; };
 		09D8F921EB0B773327D175B2 /* WhatsAppMessageSendHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsAppMessageSendHandler.swift; sourceTree = "<group>"; };
+		10BA51D067BD96A012E57504 /* ResolveSubjectTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResolveSubjectTool.swift; sourceTree = "<group>"; };
 		128C6729897A53AF9E3824F2 /* ExperimentalSpeakSettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalSpeakSettingsRepository.swift; sourceTree = "<group>"; };
 		13454298494E325D47DEEAA4 /* SaveNicknameTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveNicknameTool.swift; sourceTree = "<group>"; };
 		14866B3EDC65001356E59F30 /* WaitForChatMessageTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitForChatMessageTool.swift; sourceTree = "<group>"; };
@@ -153,6 +154,7 @@
 		1AAE952569115DFF742916A6 /* SubjectsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectsRepository.swift; sourceTree = "<group>"; };
 		1C10A6C39B88EF660B40CFDE /* WaitForEventTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitForEventTool.swift; sourceTree = "<group>"; };
 		20626007A6FFBA9ED9F026DE /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		2464E4A775CA9D03BAFA06BB /* ListRecentMessagesTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListRecentMessagesTool.swift; sourceTree = "<group>"; };
 		2A286BCAF8C4D7793A33CB49 /* ConversationRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationRow.swift; sourceTree = "<group>"; };
 		2B98CB163671CF8E0D351FD7 /* HandsFreeClientVoiceSettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandsFreeClientVoiceSettingsRepository.swift; sourceTree = "<group>"; };
 		2BCBA9A5B8B4D7D5B6030C43 /* ClientVoiceEventsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientVoiceEventsRepository.swift; sourceTree = "<group>"; };
@@ -194,14 +196,12 @@
 		65B58FC9E12E5442C96F757E /* SendMessageTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendMessageTool.swift; sourceTree = "<group>"; };
 		676798AC7526941A54AF6367 /* ConversationSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSummary.swift; sourceTree = "<group>"; };
 		679D6876CEEB8673FD56DBEE /* BridgeStatusBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeStatusBadge.swift; sourceTree = "<group>"; };
-		6B9C1328CDA34746F0091C0B /* ListMemoriesByTagTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListMemoriesByTagTool.swift; sourceTree = "<group>"; };
 		6C1561537E3C56BAA93E8124 /* AppModel+ConversationAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel+ConversationAccess.swift"; sourceTree = "<group>"; };
 		6C76517EDEEFFFE51A7DC92D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		6E0580F9F7A4AA5262BFC250 /* ListChatsBySearchTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListChatsBySearchTool.swift; sourceTree = "<group>"; };
 		70355E9E3BB824FD41DBF560 /* HandsFreeClientVoiceSettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandsFreeClientVoiceSettingsModel.swift; sourceTree = "<group>"; };
 		7173444B485FB8EC6B0DB4E3 /* DebugTreePreviewCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugTreePreviewCapture.swift; sourceTree = "<group>"; };
 		72A9C8E2C5C79242E6B20384 /* ServerLogsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLogsScreen.swift; sourceTree = "<group>"; };
-		7406556C46F147CBFE045C48 /* FinishSubjectTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinishSubjectTool.swift; sourceTree = "<group>"; };
-		74D553537463AAAAB4F7F648 /* SearchContactChatsTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchContactChatsTool.swift; sourceTree = "<group>"; };
 		791AD99870575FD33F4C47A9 /* ServerCallsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCallsRepository.swift; sourceTree = "<group>"; };
 		7A342AB53F4BDDF29AE143E7 /* MCPServerRuntimeProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPServerRuntimeProviding.swift; sourceTree = "<group>"; };
 		7A3D85EA16758BDC9516202C /* InputLockSettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputLockSettingsModel.swift; sourceTree = "<group>"; };
@@ -231,7 +231,6 @@
 		9EEA900D803E20488F7AA0AB /* PersistedChatListSignatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistedChatListSignatures.swift; sourceTree = "<group>"; };
 		A019EB08E1C5BA3401AF26EE /* ServerToolBrowserModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerToolBrowserModels.swift; sourceTree = "<group>"; };
 		A077140F302DA2C7EB7351E1 /* WaitForMessageTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitForMessageTool.swift; sourceTree = "<group>"; };
-		A41A61E7855078AFD2E3BA3B /* GetRecentMessagesTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetRecentMessagesTool.swift; sourceTree = "<group>"; };
 		A46C6382697F003DBE2D602E /* WhatsAppParserSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsAppParserSupport.swift; sourceTree = "<group>"; };
 		A500CE788F2B8711436F9601 /* ClientVoiceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientVoiceScreen.swift; sourceTree = "<group>"; };
 		A579F8B3CCCF40DD6DE588E2 /* AppModel+ChatHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel+ChatHistory.swift"; sourceTree = "<group>"; };
@@ -266,6 +265,7 @@
 		E0AA7923D872D1E3E5EC0FAD /* PersistedChatHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistedChatHistory.swift; sourceTree = "<group>"; };
 		E2F76A66C0BE5972A366F154 /* VoiceSettingsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSettingsModel.swift; sourceTree = "<group>"; };
 		E4F224F4EFC93F26E2E91D7B /* MCPServerCallEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPServerCallEntry.swift; sourceTree = "<group>"; };
+		E52D7D88930D856672138461 /* GetMemoriesByTagTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetMemoriesByTagTool.swift; sourceTree = "<group>"; };
 		E714AAF796E84732DA40F97D /* AppModel+Status.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel+Status.swift"; sourceTree = "<group>"; };
 		E8392A76D18F59E29828E1AE /* ChatHistoryRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryRepository.swift; sourceTree = "<group>"; };
 		EE5E04C7F6A1777A9847EFFD /* DebugTreeFavoritesRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugTreeFavoritesRepository.swift; sourceTree = "<group>"; };
@@ -556,17 +556,17 @@
 				C58088785FA8CD37641B6D7C /* DeleteMemoryTool.swift */,
 				5559313273CE664D19DEA9EB /* DeleteNicknameTool.swift */,
 				C56D0BE00FBBF67E54612883 /* DeleteSubjectTool.swift */,
-				7406556C46F147CBFE045C48 /* FinishSubjectTool.swift */,
+				E52D7D88930D856672138461 /* GetMemoriesByTagTool.swift */,
 				D80C04CAB7015954F28EE2F1 /* GetMemoryTool.swift */,
-				A41A61E7855078AFD2E3BA3B /* GetRecentMessagesTool.swift */,
 				D37E9A51A6C293B5B03C2D27 /* GetSubjectTool.swift */,
 				08A045700F2704850EF2B413 /* ListActiveSubjectsTool.swift */,
+				6E0580F9F7A4AA5262BFC250 /* ListChatsBySearchTool.swift */,
 				4C091C6035FEC64CD1B67364 /* ListChatsTool.swift */,
-				6B9C1328CDA34746F0091C0B /* ListMemoriesByTagTool.swift */,
 				636DE19F98A2611A80B8F50D /* ListNicknamesTool.swift */,
+				2464E4A775CA9D03BAFA06BB /* ListRecentMessagesTool.swift */,
 				8587DC86E13CDC518BB167BF /* ListUnreadChatsTool.swift */,
+				10BA51D067BD96A012E57504 /* ResolveSubjectTool.swift */,
 				13454298494E325D47DEEAA4 /* SaveNicknameTool.swift */,
-				74D553537463AAAAB4F7F648 /* SearchContactChatsTool.swift */,
 				65B58FC9E12E5442C96F757E /* SendMessageTool.swift */,
 				4B3C5AB9FD11E1EEC2C6A303 /* SpeakToClientTool.swift */,
 				B395FC6E3AB5C210A784A50E /* UpdateSubjectTool.swift */,
@@ -665,18 +665,18 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		"TEMP_830C8714-82B5-4313-9FB5-94B0CEF85422" /* Integration */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Integration;
-			sourceTree = "<group>";
-		};
-		"TEMP_9474AD8C-5FDE-4409-8E8F-0CE68DA7876B" /* Messaging */ = {
+		"TEMP_3E8462DA-D942-4416-B7D6-7D93CC696583" /* Messaging */ = {
 			isa = PBXGroup;
 			children = (
 			);
 			path = Messaging;
+			sourceTree = "<group>";
+		};
+		"TEMP_AFAA3076-E7AF-4816-BA23-6108EBED4114" /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Integration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -787,9 +787,8 @@
 				11A1C5D94345B56431F30431 /* DeleteNicknameTool.swift in Sources */,
 				09EB7C76B106D45532D58B96 /* DeleteSubjectTool.swift in Sources */,
 				2A1966AC903B59067D588FFF /* ExperimentalSpeakSettingsRepository.swift in Sources */,
-				17773365092ECD7EBDBE09D5 /* FinishSubjectTool.swift in Sources */,
+				14EACAD73FF1E19A2F610C85 /* GetMemoriesByTagTool.swift in Sources */,
 				69923229380F56E7DFC91C87 /* GetMemoryTool.swift in Sources */,
-				A94ED30BE122587C0758DF4A /* GetRecentMessagesTool.swift in Sources */,
 				6CFD50CDE5A2333F29CB95A2 /* GetSubjectTool.swift in Sources */,
 				BA377CAC917CEE24E7AC771F /* HandsFreeClientVoiceSettingsModel.swift in Sources */,
 				48CC8A52A8208E9E7C1E0E73 /* HandsFreeClientVoiceSettingsRepository.swift in Sources */,
@@ -799,9 +798,10 @@
 				A256500286BE04FBEC57F9A1 /* InputLockSettingsRepository.swift in Sources */,
 				589AE31B1557958FB9D14AF3 /* JSONValue.swift in Sources */,
 				75D59E95FD923EC8AF0451C3 /* ListActiveSubjectsTool.swift in Sources */,
+				5DB15FC41CD52251FA15E829 /* ListChatsBySearchTool.swift in Sources */,
 				0A27065588E0D5CAAC46BC2E /* ListChatsTool.swift in Sources */,
-				5AE5E42375F4B7F6E999E86D /* ListMemoriesByTagTool.swift in Sources */,
 				EA924AE0572C3F43A6FDF4C9 /* ListNicknamesTool.swift in Sources */,
+				A7AF71BE2482536162EF6468 /* ListRecentMessagesTool.swift in Sources */,
 				4E6C979AC002C8C30545609F /* ListUnreadChatsTool.swift in Sources */,
 				10419D08A5EE110556778528 /* LogEntry.swift in Sources */,
 				C056608D171536CE21A13A31 /* LogView.swift in Sources */,
@@ -836,8 +836,8 @@
 				72C8CC59D2FB6CF763D7A90A /* PersistedChatListSignatures.swift in Sources */,
 				72D155570FC8A9684D9922DA /* PreviewSupport.swift in Sources */,
 				C44FC59C3446382571BFCB24 /* RawAXNode.swift in Sources */,
+				9E3ABD76F04234D5D318A7B0 /* ResolveSubjectTool.swift in Sources */,
 				0C13828C1696B4E3C77A9915 /* SaveNicknameTool.swift in Sources */,
-				B161521753F62DB1ACF30339 /* SearchContactChatsTool.swift in Sources */,
 				AD09BC7071BFD2EBF431F7D9 /* SendMessageTool.swift in Sources */,
 				279EAECB157959545869CD5F /* ServerCallResender.swift in Sources */,
 				7310ABD0BF0CA4C193F194F6 /* ServerCallsRepository.swift in Sources */,

@@ -1,9 +1,9 @@
 import Foundation
 
-struct ListMemoriesByTagTool: MCPToolHandler {
+struct GetMemoriesByTagTool: MCPToolHandler {
     static let definition = MCPToolDefinition(
-        name: "list_memories_by_tag",
-        description: "Lists memory entries filtered by a specific tag, or all memories when tag is omitted.",
+        name: "get_memories_by_tag",
+        description: "Returns memory entries filtered by a specific tag, or all memories when tag is omitted.",
         inputSchema: [
             "type": .string("object"),
             "properties": .object([

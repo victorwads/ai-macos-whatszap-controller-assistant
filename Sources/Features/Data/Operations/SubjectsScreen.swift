@@ -6,7 +6,7 @@ struct SubjectsScreen: View {
     private enum Filter: String, CaseIterable, Identifiable {
         case active = "Active"
         case all = "All"
-        case finished = "Finished"
+        case resolved = "Resolved"
 
         var id: String { rawValue }
     }
@@ -153,8 +153,8 @@ struct SubjectsScreen: View {
         switch filter {
         case .active:
             return entries.filter { $0.status == .active }
-        case .finished:
-            return entries.filter { $0.status == .finished }
+        case .resolved:
+            return entries.filter { $0.status == .resolved }
         case .all:
             return entries
         }

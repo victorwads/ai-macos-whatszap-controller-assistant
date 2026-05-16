@@ -38,9 +38,9 @@ A subject exists for anything that may need:
 - future closure
 
 As a default, create a subject as soon as a new client intent is not instantly
-finished.
+resolved.
 
-When a subject is active, stay on it until it is either finished or blocked by
+When a subject is active, stay on it until it is either resolved or blocked by
 an external event.
 
 ## Nickname resolution
@@ -111,7 +111,7 @@ while true:
         if the subject only needs a status update:
             speak_to_client(...)
         if the subject is complete:
-            finish_subject(...)
+            resolve_subject(...)
         if the subject is blocked waiting for an external event:
             wait_next_event(...)
         continue
@@ -155,11 +155,11 @@ Before waiting, always inspect the subjects.
   before updating or replying.
 - If the subject depends on a WhatsApp reply, use `wait_next_event(...)` with
   the correct `chatId` and `afterMessageId` when available.
-- If the subject is finished, mark it finished with `finish_subject(...)`.
+- If the subject is resolved, mark it resolved with `resolve_subject(...)`.
 - If a subject is noise or duplication, delete it only when that is clearly
   the correct cleanup action.
 - Work one subject at a time.
-- A subject can be conceptually active, waiting, or finished.
+- A subject can be conceptually active, waiting, or resolved.
 - Do not bounce between subjects unless a higher-priority external event
   arrives.
 

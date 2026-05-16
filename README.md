@@ -114,9 +114,12 @@ Current implemented tools:
 
 ```text
 list_chats()
-get_recent_messages(chatId, limit = 10)
+list_recent_messages(chatId, limit = 10)
+list_chats_by_search(query, limit = 3)
 send_message(chatId, text)
 wait_for_message(chatId?, afterMessageId?, timeoutSeconds = 60)
+get_memories_by_tag(tag?)
+resolve_subject(id)
 ```
 
 ### Chat History Persistence

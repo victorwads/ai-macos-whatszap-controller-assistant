@@ -17,7 +17,7 @@ Este plugin conecta o Codex ao **AssistantMCPServer local**, que expõe tools vi
 
 1. Inicie o Assistant MCP Server.
 2. Abra o WhatsApp Desktop.
-3. No Codex, habilite o plugin **AssistantMCPServer (Local)** e use as ferramentas expostas pelo MCP server (ex.: `list_chats`, `get_recent_messages`, `send_message`, `speak_to_client`, `ask_to_client`).
+3. No Codex, habilite o plugin **AssistantMCPServer (Local)** e use as ferramentas expostas pelo MCP server (ex.: `list_chats`, `list_recent_messages`, `send_message`, `speak_to_client`, `ask_to_client`).
 
 ## Dicas
 

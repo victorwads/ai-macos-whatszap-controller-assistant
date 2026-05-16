@@ -95,7 +95,7 @@ Regras:
 
 - `list_chats()`: lista chats.
 - `list_unread_chats()`: lista chats não lidos.
-- `get_recent_messages(chatId, limit)`: lê mensagens recentes.
+- `list_recent_messages(chatId, limit)`: lê mensagens recentes.
 - `send_message(chatId, text | messages[])`: envia mensagens.
 - `wait_for_message(chatId?, afterMessageId?)`: aguarda mensagem nova.
 
@@ -115,7 +115,7 @@ Regras:
 
 - `create_subject(...)`
 - `update_subject(...)`
-- `finish_subject(...)`
+- `resolve_subject(...)`
 - `list_active_subjects(...)`
 - `get_subject(...)`
 - `delete_subject(...)`
@@ -130,7 +130,7 @@ Regras:
 
 - `create_memory(...)`
 - `get_memory(key)`
-- `list_memories_by_tag(tag?)`
+- `get_memories_by_tag(tag?)`
 - `delete_memory(...)`
 
 Regras:
@@ -141,7 +141,7 @@ Regras:
 - Nunca use `title` para Memories. Use `key`.
 - Sempre passe `key` em snake_case.
 - Use `get_memory(...)` para busca direta.
-- Use `list_memories_by_tag(...)` para agrupar por contexto.
+- Use `get_memories_by_tag(...)` para agrupar por contexto.
 - Se o contato for recorrente e relevante, preserve o contexto de forma
   explícita.
 

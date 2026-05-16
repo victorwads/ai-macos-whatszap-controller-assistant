@@ -1,9 +1,9 @@
 import Foundation
 
-struct SearchContactChatsTool: MCPToolHandler {
+struct ListChatsBySearchTool: MCPToolHandler {
     static let definition = MCPToolDefinition(
-        name: "search_contact_chats",
-        description: "Searches mapped WhatsApp chats by contact name and returns the best matches.",
+        name: "list_chats_by_search",
+        description: "Lists mapped WhatsApp chats by search term and returns the best matches.",
         inputSchema: [
             "type": .string("object"),
             "properties": .object([

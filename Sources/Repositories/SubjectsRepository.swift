@@ -182,14 +182,14 @@ actor SubjectsRepository {
         return subject
     }
 
-    func finish(id: UUID?) throws -> SubjectEntry {
+    func resolve(id: UUID?) throws -> SubjectEntry {
         try update(
             id: id,
             title: nil,
             summary: nil,
             initialRequest: nil,
             details: nil,
-            status: .finished,
+            status: .resolved,
             priority: nil,
             participants: nil,
             nextSteps: nil,

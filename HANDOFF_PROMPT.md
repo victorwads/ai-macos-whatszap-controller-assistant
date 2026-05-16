@@ -7,7 +7,7 @@ Voce esta trabalhando no projeto macOS nativo AssistantMCPServer em:
 /Users/victorwads/GitRepos/Personal/AssistantMCPServer
 
 Objetivo do projeto:
-Criar uma aplicacao macOS nativa em SwiftUI que usa Accessibility para ler e controlar o WhatsApp Desktop e expor isso depois como um MCP server local. O objetivo final e substituir ciclos manuais de sleep por ferramentas como wait_for_next_message, list_conversations, list_unread_conversations, get_recent_messages, send_message e get_instructions.
+Criar uma aplicacao macOS nativa em SwiftUI que usa Accessibility para ler e controlar o WhatsApp Desktop e expor isso depois como um MCP server local. O objetivo final e substituir ciclos manuais de sleep por ferramentas como wait_for_next_message, list_conversations, list_unread_conversations, list_recent_messages, send_message e get_instructions.
 
 Estado atual:
 - Projeto Xcode SwiftUI criado e versionado.
@@ -17,7 +17,7 @@ Estado atual:
 - AccessibilityService ja tenta localizar o WhatsApp pelo bundle id net.whatsapp.WhatsApp e fazer dump inicial da arvore de acessibilidade.
 - Memories agora usam `key` como identificador canonico.
 - `get_memory(key)` faz busca exata.
-- `list_memories_by_tag(tag?)` filtra por tag e retorna tudo quando `tag` e omitida.
+- `get_memories_by_tag(tag?)` filtra por tag e retorna tudo quando `tag` e omitida.
 - `title` ficou reservado para Subjects e Nicknames.
 - Keys devem ser enviadas em snake_case.
 - O build validado anteriormente usou:
@@ -34,7 +34,7 @@ Regras de trabalho:
 
 Proxima etapa sugerida:
 1. Rodar o app pelo Xcode e confirmar que Accessibility esta trusted.
-2. Validar `create_memory`, `get_memory` e `list_memories_by_tag` via MCP inspector.
+2. Validar `create_memory`, `get_memory` e `get_memories_by_tag` via MCP inspector.
 3. Melhorar o dump do WhatsApp para extrair uma representacao estruturada da tela, com role, title, value, description, frame e children relevantes.
 4. Criar modelos Swift para ConversationSummary e Message.
 5. Implementar list_conversations a partir da lista lateral do WhatsApp.
