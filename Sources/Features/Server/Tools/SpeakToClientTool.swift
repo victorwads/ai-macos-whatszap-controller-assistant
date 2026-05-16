@@ -3,7 +3,7 @@ import Foundation
 struct SpeakToClientTool: MCPToolHandler {
     static let definition = MCPToolDefinition(
         name: "speak_to_client",
-        description: "Speaks a message out loud to the client using text-to-speech.",
+        description: "Speaks a message out loud to the client using text-to-speech. If the text is question-like, it is treated as an ask-and-wait flow.",
         inputSchema: [
             "type": .string("object"),
             "properties": .object([
@@ -32,6 +32,27 @@ struct SpeakToClientTool: MCPToolHandler {
         let language = arguments.string(for: "language") ?? context.speechLanguage()
         let voiceIdentifier = arguments.string(for: "voiceIdentifier") ?? context.speechVoiceIdentifier()
         let rate = arguments.number(for: "rate").map(Float.init) ?? context.speechRate()
+
+        if isQuestionLike(text) {
+            let warning = "Warning: speak_to_client received question-like text and routed it through ask_to_client semantics. Use ask_to_client for questions, decisions, permissions, or clarification."
+            context.appendLog(warning, level: .warning)
+            let askEvent = await context.clientVoiceEventsRepository.appendAsk(prompt: text)
+            await context.refreshPendingClientAskCount()
+
+            do {
+                try await context.voiceAssistant.speak(text, language: language, voiceIdentifier: voiceIdentifier, rate: rate)
+                let transcript = try await context.clientVoiceEventsRepository.waitForAnswer(id: askEvent.id)
+                await context.refreshPendingClientAskCount()
+                return .success(.object([
+                    "response": .string(transcript),
+                    "warning": .string(warning)
+                ]))
+            } catch {
+                await context.refreshPendingClientAskCount()
+                return .failure(error)
+            }
+        }
+
         _ = await context.clientVoiceEventsRepository.appendSpeak(text: text)
         await context.refreshPendingClientAskCount()
 
@@ -41,5 +62,9 @@ struct SpeakToClientTool: MCPToolHandler {
         } catch {
             return .failure(error)
         }
+    }
+
+    private static func isQuestionLike(_ text: String) -> Bool {
+        text.contains("?")
     }
 }
