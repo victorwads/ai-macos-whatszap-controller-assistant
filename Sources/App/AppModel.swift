@@ -53,6 +53,11 @@ final class AppModel: ObservableObject {
     let parser = WhatsAppAppParser()
     let whatsAppWebSessionStore = WhatsAppWebSessionStore()
     let whatsAppWebBridge = WhatsAppWebBridge()
+    lazy var whatsAppWebDebugCaptureService = WhatsAppWebDebugCaptureService(
+        log: { [weak self] message, level in
+            self?.appendLog(message, level: level)
+        }
+    )
     let clientPromptWaitRepository = ClientPromptWaitRepository.shared
     lazy var whatsappMessageSendCoordinator = WhatsAppMessageSendCoordinator(
         accessibility: accessibility,
@@ -152,6 +157,7 @@ final class AppModel: ObservableObject {
         whatsAppWebSettings = WhatsAppWebSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
         whatsAppWebSessionStore.setCustomUserAgent(whatsAppWebSettings.effectiveCustomUserAgent)
         whatsAppWebSessionStore.setInspectable(whatsAppWebSettings.isInspectable)
+        whatsAppWebSessionStore.setPageZoom(whatsAppWebSettings.pageZoom)
 
         voiceAssistant.onSpeakingStateChanged = { [weak self] isSpeaking in
             self?.speechSynthesizerSpeaking = isSpeaking
@@ -259,6 +265,14 @@ final class AppModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.restartWhatsAppWebBridgePolling()
+            }
+            .store(in: &cancellables)
+
+        whatsAppWebSettings.$pageZoom
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] value in
+                self?.whatsAppWebSessionStore.setPageZoom(value)
             }
             .store(in: &cancellables)
     }

@@ -6,6 +6,7 @@ final class WhatsAppWebSessionStore {
     private var webViewsByAccountId: [UUID: WKWebView] = [:]
     private var customUserAgent = WhatsAppWebSettingsModel.defaultCustomUserAgent
     private var isInspectable = WhatsAppWebSettingsModel.defaultInspectable
+    private var pageZoom = WhatsAppWebSettingsModel.defaultPageZoom
 
     func warmSessions(for accounts: [WhatsAppWebAccount]) {
         for account in accounts {
@@ -44,6 +45,19 @@ final class WhatsAppWebSessionStore {
         }
     }
 
+    func setPageZoom(_ value: Double) {
+        let resolvedValue = min(max(value, 0.25), 2.0)
+        guard pageZoom != resolvedValue else {
+            return
+        }
+
+        pageZoom = resolvedValue
+
+        for webView in webViewsByAccountId.values {
+            webView.pageZoom = resolvedValue
+        }
+    }
+
     func webView(for account: WhatsAppWebAccount) -> WKWebView {
         if let existing = webViewsByAccountId[account.id] {
             return existing
@@ -57,6 +71,7 @@ final class WhatsAppWebSessionStore {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsMagnification = true
         webView.customUserAgent = customUserAgent
+        webView.pageZoom = pageZoom
         if #available(macOS 13.3, *) {
             webView.isInspectable = isInspectable
         }

@@ -32,7 +32,21 @@ struct WhatsAppWebScreen: View {
                             await appModel.captureWhatsAppWebSnapshot(for: account)
                         }
                     } label: {
-                        Label("Capture Snapshot", systemImage: "arrow.clockwise.circle")
+                        Label("Refresh Snapshot", systemImage: "arrow.clockwise.circle")
+                    }
+
+                    Button {
+                        Task {
+                            await appModel.captureAndSaveWhatsAppWebSnapshot(for: account)
+                        }
+                    } label: {
+                        Label("Save Snapshot", systemImage: "square.and.arrow.down")
+                    }
+
+                    Button {
+                        appModel.whatsAppWebDebugCaptureService.revealCapturesDirectoryInFinder()
+                    } label: {
+                        Label("Open Captures Folder", systemImage: "folder")
                     }
                 }
                 .padding(12)

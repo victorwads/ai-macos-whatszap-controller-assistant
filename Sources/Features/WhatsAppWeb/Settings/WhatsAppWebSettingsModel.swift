@@ -7,11 +7,13 @@ final class WhatsAppWebSettingsModel: ObservableObject {
     static let defaultInspectable = true
     static let defaultBridgePollingEnabled = true
     static let defaultBridgePollingIntervalSeconds = 5.0
+    static let defaultPageZoom = 0.5
 
     @Published var customUserAgent: String
     @Published var isInspectable: Bool
     @Published var bridgePollingEnabled: Bool
     @Published var bridgePollingIntervalSeconds: Double
+    @Published var pageZoom: Double
 
     private let repository: WhatsAppWebSettingsRepository
     private var cancellables: Set<AnyCancellable> = []
@@ -25,6 +27,7 @@ final class WhatsAppWebSettingsModel: ObservableObject {
         isInspectable = Self.defaultInspectable
         bridgePollingEnabled = Self.defaultBridgePollingEnabled
         bridgePollingIntervalSeconds = Self.defaultBridgePollingIntervalSeconds
+        pageZoom = Self.defaultPageZoom
 
         guard loadPersistedValues else { return }
         loadStoredValue()
@@ -41,6 +44,7 @@ final class WhatsAppWebSettingsModel: ObservableObject {
         isInspectable = Self.defaultInspectable
         bridgePollingEnabled = Self.defaultBridgePollingEnabled
         bridgePollingIntervalSeconds = Self.defaultBridgePollingIntervalSeconds
+        pageZoom = Self.defaultPageZoom
     }
 
     private func loadStoredValue() {
@@ -48,6 +52,7 @@ final class WhatsAppWebSettingsModel: ObservableObject {
         isInspectable = repository.loadInspectable(defaultValue: Self.defaultInspectable)
         bridgePollingEnabled = repository.loadBridgePollingEnabled(defaultValue: Self.defaultBridgePollingEnabled)
         bridgePollingIntervalSeconds = repository.loadBridgePollingInterval(defaultValue: Self.defaultBridgePollingIntervalSeconds)
+        pageZoom = repository.loadPageZoom(defaultValue: Self.defaultPageZoom)
     }
 
     private func bindPersistence() {
@@ -78,6 +83,13 @@ final class WhatsAppWebSettingsModel: ObservableObject {
                 self?.persistStoredValue()
             }
             .store(in: &cancellables)
+
+        $pageZoom
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.persistStoredValue()
+            }
+            .store(in: &cancellables)
     }
 
     private func persistStoredValue() {
@@ -85,5 +97,6 @@ final class WhatsAppWebSettingsModel: ObservableObject {
         repository.saveInspectable(isInspectable)
         repository.saveBridgePollingEnabled(bridgePollingEnabled)
         repository.saveBridgePollingInterval(bridgePollingIntervalSeconds)
+        repository.savePageZoom(pageZoom)
     }
 }

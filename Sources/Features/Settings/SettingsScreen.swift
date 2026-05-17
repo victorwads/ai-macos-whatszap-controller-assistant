@@ -182,6 +182,26 @@ struct SettingsScreen: View {
                                 .foregroundStyle(.secondary)
                         }
 
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("WebView zoom")
+                                Spacer()
+                                Stepper(
+                                    value: $whatsAppWebSettings.pageZoom,
+                                    in: 0.25...1.0,
+                                    step: 0.05
+                                ) {
+                                    Text("\(Int(whatsAppWebSettings.pageZoom * 100))%")
+                                        .monospacedDigit()
+                                }
+                                .frame(width: 140, alignment: .trailing)
+                            }
+
+                            Text("Defaults to 50% so more of the WhatsApp Web UI fits on screen for inspection and future polling.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
                         Divider()
 
                         HStack(spacing: 8) {

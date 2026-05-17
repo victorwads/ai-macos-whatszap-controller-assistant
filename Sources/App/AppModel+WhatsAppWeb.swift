@@ -79,6 +79,18 @@ extension AppModel {
         }
     }
 
+    func captureAndSaveWhatsAppWebSnapshot(for account: WhatsAppWebAccount) async {
+        let webView = whatsAppWebSessionStore.webView(for: account)
+
+        do {
+            let snapshot = try await whatsAppWebBridge.captureSnapshot(from: webView)
+            whatsAppWebPageSnapshotsByAccountId[account.id] = snapshot
+            _ = whatsAppWebDebugCaptureService.saveSnapshot(accountName: account.name, snapshot: snapshot)
+        } catch {
+            appendLog("WhatsApp Web snapshot failed for '\(account.name)': \(error.localizedDescription)", level: .warning)
+        }
+    }
+
     func restartWhatsAppWebBridgePolling() {
         whatsAppWebBridgePollingTask?.cancel()
         whatsAppWebBridgePollingTask = nil
