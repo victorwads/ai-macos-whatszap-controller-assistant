@@ -29,71 +29,54 @@ actor NicknamesRepository {
         self.defaults = defaults
     }
 
-    func list(chatId: String? = nil) -> [NicknameEntry] {
-        let all = loadAll()
-        if let chatId, !chatId.isEmpty {
-            return all
-                .filter { $0.chatId == chatId }
-                .sorted { $0.createdAt > $1.createdAt }
-        }
-        return all.sorted { $0.createdAt > $1.createdAt }
-    }
-
-    func list(chatId: String? = nil, nicknameQuery: String?) -> [NicknameEntry] {
+    func list(query: String? = nil) -> [NicknameEntry] {
         let all = loadAll()
 
-        let trimmedChatId = (chatId ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedChatId.isEmpty {
-            return all
-                .filter { $0.chatId == trimmedChatId }
-                .sorted { $0.createdAt > $1.createdAt }
-        }
-
-        let trimmedQuery = (nicknameQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedQuery = (query ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else {
             return all.sorted { $0.createdAt > $1.createdAt }
         }
 
         let normalizedQuery = normalizedNicknameSearchText(trimmedQuery)
 
-        let exactChatIds = Set(
-            all
-                .filter { normalizedNicknameSearchText($0.nickname) == normalizedQuery }
-                .map(\.chatId)
-        )
-        if !exactChatIds.isEmpty {
+        let exactMatches = all.filter {
+            normalizedNicknameSearchText($0.nickname) == normalizedQuery
+                || normalizedNicknameSearchText($0.originalName) == normalizedQuery
+                || normalizedNicknameSearchText($0.chatId ?? "") == normalizedQuery
+        }
+        if !exactMatches.isEmpty {
+            let exactOriginalNames = Set(exactMatches.map { normalizedNicknameSearchText($0.originalName) })
+            let exactChatIds = Set(exactMatches.compactMap { $0.chatId }.map(normalizedNicknameSearchText))
             return all
-                .filter { exactChatIds.contains($0.chatId) }
+                .filter {
+                    exactOriginalNames.contains(normalizedNicknameSearchText($0.originalName))
+                        || exactChatIds.contains(normalizedNicknameSearchText($0.chatId ?? ""))
+                }
                 .sorted { $0.createdAt > $1.createdAt }
         }
 
-        let matchingChatIds = Set(
+        let matchingOriginalNames = Set(
             all
                 .filter {
                     normalizedNicknameSearchText($0.nickname).contains(normalizedQuery)
-                        || normalizedNicknameSearchText($0.chatName).contains(normalizedQuery)
-                        || normalizedNicknameSearchText($0.chatId).contains(normalizedQuery)
+                        || normalizedNicknameSearchText($0.originalName).contains(normalizedQuery)
+                        || normalizedNicknameSearchText($0.chatId ?? "").contains(normalizedQuery)
                 }
-                .map(\.chatId)
+                .map { normalizedNicknameSearchText($0.originalName) }
         )
-        guard !matchingChatIds.isEmpty else {
+        guard !matchingOriginalNames.isEmpty else {
             return []
         }
 
         return all
-            .filter { matchingChatIds.contains($0.chatId) }
+            .filter { matchingOriginalNames.contains(normalizedNicknameSearchText($0.originalName)) }
             .sorted { $0.createdAt > $1.createdAt }
     }
 
-    func save(chatId: String?, chatName: String?, nickname: String?) throws -> SaveResult {
-        let trimmedChatId = (chatId ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedChatId.isEmpty {
-            throw NicknamesRepositoryError.missingParameter("chatId")
-        }
-
-        let trimmedChatName = (chatName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedChatName.isEmpty {
-            throw NicknamesRepositoryError.missingParameter("chatName")
+    func save(originalName: String?, chatId: String?, nickname: String?) throws -> SaveResult {
+        let trimmedOriginalName = (originalName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedOriginalName.isEmpty {
+            throw NicknamesRepositoryError.missingParameter("originalName")
         }
 
         let trimmedNickname = (nickname ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -101,16 +84,40 @@ actor NicknamesRepository {
             throw NicknamesRepositoryError.missingParameter("nickname")
         }
 
+        let trimmedChatId = normalizedOptionalString(chatId)
+
         var entries = loadAll()
-        if let existing = entries.first(where: { $0.chatId == trimmedChatId && $0.nickname == trimmedNickname }) {
-            return SaveResult(entry: existing, created: false)
+        if let index = entries.firstIndex(where: {
+            normalizedNicknameSearchText($0.originalName) == normalizedNicknameSearchText(trimmedOriginalName)
+                && normalizedNicknameSearchText($0.nickname) == normalizedNicknameSearchText(trimmedNickname)
+                && normalizedOptionalString($0.chatId) == trimmedChatId
+        }) {
+            return SaveResult(entry: entries[index], created: false)
+        }
+
+        if let index = entries.firstIndex(where: {
+            normalizedNicknameSearchText($0.originalName) == normalizedNicknameSearchText(trimmedOriginalName)
+                && normalizedNicknameSearchText($0.nickname) == normalizedNicknameSearchText(trimmedNickname)
+        }) {
+            if entries[index].chatId == nil, let trimmedChatId {
+                entries[index] = NicknameEntry(
+                    id: entries[index].id,
+                    originalName: entries[index].originalName,
+                    nickname: entries[index].nickname,
+                    chatId: trimmedChatId,
+                    createdAt: entries[index].createdAt
+                )
+                persistAll(entries)
+                return SaveResult(entry: entries[index], created: false)
+            }
+            return SaveResult(entry: entries[index], created: false)
         }
 
         let entry = NicknameEntry(
             id: UUID(),
-            chatId: trimmedChatId,
-            chatName: trimmedChatName,
+            originalName: trimmedOriginalName,
             nickname: trimmedNickname,
+            chatId: trimmedChatId,
             createdAt: Date()
         )
         entries.append(entry)
@@ -152,5 +159,10 @@ actor NicknamesRepository {
         value
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func normalizedOptionalString(_ value: String?) -> String? {
+        let trimmed = (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

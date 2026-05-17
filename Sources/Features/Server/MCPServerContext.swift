@@ -150,10 +150,11 @@ extension MCPServerContext {
     func nicknameEntryJSONValue(_ entry: NicknameEntry) -> JSONValue {
         .object([
             "id": .string(entry.id.uuidString),
-            "chatId": .string(entry.chatId),
-            "chatName": .string(entry.chatName),
-            "nickname": .string(entry.nickname)
+            "originalName": .string(entry.originalName),
+            "nickname": .string(entry.nickname),
+            "chatId": .nonEmptyString(entry.chatId)
         ])
+        .pruningNulls()
     }
 
 }

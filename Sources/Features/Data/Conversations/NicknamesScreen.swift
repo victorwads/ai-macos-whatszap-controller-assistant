@@ -5,6 +5,7 @@ struct NicknamesScreen: View {
 
     @State private var entries: [NicknameEntry] = []
     @State private var selectedChatId: String = ""
+    @State private var originalNameText: String = ""
     @State private var nicknameText: String = ""
     @State private var errorText: String?
     @State private var isWorking = false
@@ -33,7 +34,7 @@ struct NicknamesScreen: View {
                         Text(entry.nickname)
                             .font(.body.weight(.semibold))
 
-                        Text(entry.chatName)
+                        Text(entry.originalName)
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -42,10 +43,12 @@ struct NicknamesScreen: View {
                     Spacer()
 
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(entry.chatId)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                        if let chatId = entry.chatId, !chatId.isEmpty {
+                            Text(chatId)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
 
                         Text(entry.createdAt, style: .date)
                             .font(.caption)
@@ -67,9 +70,6 @@ struct NicknamesScreen: View {
         .padding(12)
         .task {
             guard !PreviewSupport.isRunningForPreviews else { return }
-            if selectedChatId.isEmpty {
-                selectedChatId = appModel.conversations.first?.id ?? ""
-            }
             await reload()
         }
         .task {
@@ -83,15 +83,19 @@ struct NicknamesScreen: View {
     private var addNicknameSection: some View {
         GroupBox("Add nickname") {
             VStack(alignment: .leading, spacing: 10) {
-                Picker("Chat", selection: $selectedChatId) {
+                TextField("Original name", text: $originalNameText)
+                    .textFieldStyle(.roundedBorder)
+
+                Picker("Linked chat", selection: $selectedChatId) {
+                    Text("No linked chat").tag("")
                     ForEach(appModel.conversations) { conversation in
                         Text(conversation.name)
                             .tag(conversation.id)
                     }
                 }
 
-                if !selectedChatId.isEmpty {
-                    Text(selectedChatId)
+                if let linkedConversation = appModel.conversations.first(where: { $0.id == selectedChatId }), !selectedChatId.isEmpty {
+                    Text(linkedConversation.id)
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -113,7 +117,8 @@ struct NicknamesScreen: View {
     }
 
     private var canSave: Bool {
-        !selectedChatId.isEmpty && !nicknameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !nicknameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !originalNameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func reload() async {
@@ -126,12 +131,20 @@ struct NicknamesScreen: View {
         defer { isWorking = false }
 
         let chatId = selectedChatId.trimmingCharacters(in: .whitespacesAndNewlines)
+        let originalName = originalNameText.trimmingCharacters(in: .whitespacesAndNewlines)
         let nickname = nicknameText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let chatName = appModel.conversations.first(where: { $0.id == chatId })?.name
+        let linkedConversation = appModel.conversations.first(where: { $0.id == chatId })
+        let resolvedOriginalName = originalName.isEmpty ? linkedConversation?.name : originalName
 
         do {
-            _ = try await appModel.nicknamesRepository.save(chatId: chatId, chatName: chatName, nickname: nickname)
+            _ = try await appModel.nicknamesRepository.save(
+                originalName: resolvedOriginalName,
+                chatId: chatId.isEmpty ? nil : chatId,
+                nickname: nickname
+            )
             nicknameText = ""
+            originalNameText = ""
+            selectedChatId = ""
             await reload()
         } catch {
             errorText = error.localizedDescription

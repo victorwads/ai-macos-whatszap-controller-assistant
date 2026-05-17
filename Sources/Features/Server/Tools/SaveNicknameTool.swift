@@ -3,20 +3,19 @@ import Foundation
 struct SaveNicknameTool: MCPToolHandler {
     static let definition = MCPToolDefinition(
         name: "save_nickname",
-        description: "Saves a nickname for a WhatsApp chat (dedupes exact matches).",
+        description: "Saves a nickname alias for a person or contact. The nickname and originalName are required. chatId is optional and only links the alias to a specific WhatsApp chat when available.",
         inputSchema: [
             "type": .string("object"),
             "properties": .object([
-                "chatId": .object(["type": .string("string")]),
-                "chatName": .object(["type": .string("string")]),
-                "nickname": .object(["type": .string("string")])
+                "nickname": .object(["type": .string("string")]),
+                "originalName": .object(["type": .string("string")]),
+                "chatId": .object(["type": .string("string")])
             ]),
-            "required": .array([.string("chatId"), .string("nickname")])
+            "required": .array([.string("nickname"), .string("originalName")])
         ],
         exampleParameters: [
-            .init(name: "chatId", value: .string("chat-1")),
-            .init(name: "chatName", value: .string("Family")),
-            .init(name: "nickname", value: .string("mom-test"))
+            .init(name: "nickname", value: .string("Wades")),
+            .init(name: "originalName", value: .string("Victor"))
         ],
         traits: [.writesState]
     )
@@ -24,13 +23,12 @@ struct SaveNicknameTool: MCPToolHandler {
     static func handle(_ call: MCPToolCall, context: MCPServerContext) async -> Result<JSONValue, Error> {
         let arguments = MCPToolArguments(values: call.arguments)
         let chatId = arguments.string(for: "chatId", "chat_id")
-        let providedChatName = arguments.string(for: "chatName", "chat_name")
-        let resolvedChatName = providedChatName ?? context.memoryStore.conversation(for: chatId ?? "")?.name
+        let originalName = arguments.string(for: "originalName")
 
         do {
             let result = try await context.nicknamesRepository.save(
+                originalName: originalName,
                 chatId: chatId,
-                chatName: resolvedChatName,
                 nickname: arguments.string(for: "nickname")
             )
             return .success(.object([
