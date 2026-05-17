@@ -178,7 +178,7 @@ Use `Open Captures Folder` on that same screen to reveal the folder in Finder.
 The canonical local workflow is the restart script:
 
 ```sh
-./scripts/restart.sh
+./scripts/check_build_and_restart.sh
 ```
 
 That script:
@@ -248,7 +248,7 @@ This means the MCP layer reads from local state instead of re-parsing the UI fro
 Key files and folders:
 
 - `project.yml` - XcodeGen project definition
-- `scripts/restart.sh` - canonical local build-and-run script
+- `scripts/check_build_and_restart.sh` - canonical local build-and-run script
 - `Sources/App/` - application state, polling, persistence, and MCP wiring
 - `Sources/Features/Server/` - MCP server transport and tool handlers
 - `Sources/Features/WhatsAppIntegration/` - Accessibility capture, parsing, and interaction
