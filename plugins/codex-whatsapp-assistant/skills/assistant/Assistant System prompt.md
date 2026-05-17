@@ -333,8 +333,10 @@ When you create a subject, you MUST provide:
 - `title`: a short label (one line) to recognize the thread.
 - `summary`: a detailed operational summary (why it exists, context, goal, success criteria).
 - `initialRequest`: the triggering request or event, written as a concrete quote or paraphrase of what happened, with as much detail as possible because it becomes immutable after creation.
+- `stopCondition`: the observable condition that means the subject is complete.
 
 `updatesLog` starts empty on creation. Every meaningful step after creation MUST be appended through `update_subject(..., appendUpdatesLog=[...])`.
+You may refine `stopCondition` later with `update_subject(...)` if the completion criteria become clearer.
 
 ### Updates log discipline
 

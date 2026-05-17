@@ -332,8 +332,10 @@ Quando você cria um subject, você DEVE fornecer:
 - `title`: um rótulo curto (uma linha) para reconhecer o tópico.
 - `summary`: um resumo operacional detalhado (por que existe, contexto, objetivo, critérios de sucesso).
 - `initialRequest`: a solicitação ou evento acionador, escrito como uma citação concreta ou paráfrase do que aconteceu, com o máximo de detalhes possível, pois se torna imutável após a criação.
+- `stopCondition`: a condição observável que significa que o subject foi concluído.
 
 `updatesLog` começa vazio na criação. Cada passo significativo após a criação DEVE ser appendado através de `update_subject(..., appendUpdatesLog=[...])`.
+Você pode refinar `stopCondition` depois com `update_subject(...)` se os critérios de conclusão ficarem mais claros.
 
 ### Disciplina do Log de Atualizações
 

@@ -47,6 +47,7 @@ actor SubjectsRepository {
         title: String?,
         summary: String?,
         initialRequest: String?,
+        stopCondition: String?,
         details: String?,
         priority: Int?,
         participants: [String]?,
@@ -70,6 +71,11 @@ actor SubjectsRepository {
             throw SubjectsRepositoryError.missingParameter("initialRequest")
         }
 
+        let trimmedStopCondition = (stopCondition ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedStopCondition.isEmpty {
+            throw SubjectsRepositoryError.missingParameter("stopCondition")
+        }
+
         var all = loadAll()
         let now = Date()
         let entry = SubjectEntry(
@@ -77,6 +83,7 @@ actor SubjectsRepository {
             title: trimmedTitle,
             summary: trimmedSummary,
             initialRequest: trimmedInitialRequest,
+            stopCondition: trimmedStopCondition,
             details: normalizedOptional(details),
             status: .active,
             priority: max(0, priority ?? 0),
@@ -99,6 +106,7 @@ actor SubjectsRepository {
         id: UUID?,
         title: String?,
         summary: String?,
+        stopCondition: String?,
         details: String?,
         priority: Int?,
         participants: [String]?,
@@ -129,6 +137,12 @@ actor SubjectsRepository {
             let trimmedSummary = summary.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmedSummary.isEmpty {
                 subject.summary = trimmedSummary
+            }
+        }
+        if let stopCondition {
+            let trimmedStopCondition = stopCondition.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedStopCondition.isEmpty {
+                subject.stopCondition = trimmedStopCondition
             }
         }
         if let details {
@@ -307,6 +321,7 @@ actor SubjectsRepository {
                 title: old.title,
                 summary: old.summary,
                 initialRequest: old.summary,
+                stopCondition: "",
                 details: old.details,
                 status: old.status,
                 priority: old.priority,
@@ -332,6 +347,9 @@ actor SubjectsRepository {
         }
         if mutable.initialRequest.isEmpty {
             mutable.initialRequest = "(Solicitacao inicial nao disponivel - sujeito antigo)"
+        }
+        if mutable.stopCondition.isEmpty {
+            mutable.stopCondition = "(Condição de parada não disponível - sujeito antigo)"
         }
         if mutable.eventLog.isEmpty {
             mutable.eventLog = []

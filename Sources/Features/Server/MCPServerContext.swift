@@ -216,6 +216,7 @@ extension MCPServerContext {
             "title": .string(entry.title),
             "summary": .string(entry.summary),
             "initialRequest": .string(entry.initialRequest),
+            "stopCondition": .string(entry.stopCondition),
             "details": .nonEmptyString(entry.details),
             "status": .string(entry.status.rawValue),
             "priority": .number(Double(entry.priority)),

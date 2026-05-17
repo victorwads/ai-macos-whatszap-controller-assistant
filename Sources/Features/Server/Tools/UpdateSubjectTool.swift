@@ -11,6 +11,7 @@ struct UpdateSubjectTool: MCPToolHandler {
         Rules:
         - `nextSteps` replaces the current array
         - `appendUpdatesLog` appends new updates and ignores exact duplicates
+        - `stopCondition` can be refined as the understanding of completion changes
         """,
         inputSchema: [
             "type": .string("object"),
@@ -18,6 +19,7 @@ struct UpdateSubjectTool: MCPToolHandler {
                 "id": .object(["type": .string("string")]),
                 "title": .object(["type": .string("string")]),
                 "summary": .object(["type": .string("string")]),
+                "stopCondition": .object(["type": .string("string")]),
                 "details": .object(["type": .string("string")]),
                 "priority": .object(["type": .string("number")]),
                 "participants": .object(["type": .string("array"), "items": .object(["type": .string("string")])]),
@@ -34,6 +36,7 @@ struct UpdateSubjectTool: MCPToolHandler {
             .init(name: "id", value: .string("22222222-2222-2222-2222-222222222222")),
             .init(name: "title", value: .string("Preview subject updated")),
             .init(name: "summary", value: .string("Updated from the preview browser.")),
+            .init(name: "stopCondition", value: .string("The subject shows the revised end condition and the work can be closed when it is met.")),
             .init(name: "details", value: .string("Expanded with more context.")),
             .init(name: "priority", value: .number(2)),
             .init(name: "participants", value: .array([.string("Codex"), .string("Client")])),
@@ -56,6 +59,7 @@ struct UpdateSubjectTool: MCPToolHandler {
                 id: id,
                 title: arguments.string(for: "title"),
                 summary: arguments.string(for: "summary"),
+                stopCondition: arguments.string(for: "stopCondition"),
                 details: arguments.string(for: "details"),
                 priority: arguments.int(for: "priority"),
                 participants: arguments.stringArray(for: "participants"),

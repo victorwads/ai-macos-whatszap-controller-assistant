@@ -171,6 +171,14 @@ struct SubjectsScreen: View {
                         .lineLimit(3)
                 }
 
+                let stopCondition = entry.stopCondition.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !stopCondition.isEmpty {
+                    Text("Condição de parada: \(stopCondition)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+
                 if let details = entry.details, !details.isEmpty {
                     Text(details)
                         .font(.callout)

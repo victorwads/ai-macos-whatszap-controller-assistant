@@ -8,7 +8,9 @@ struct CreateSubjectTool: MCPToolHandler {
 
         Use this to start tracking work that needs follow-up, execution, or closure.
 
-        `initialRequest` is immutable after creation. Use `update_subject(...)` to record progress over time.
+        `initialRequest` captures the trigger and is immutable after creation.
+        `stopCondition` captures the observable condition that ends the subject.
+        Use `update_subject(...)` to record progress over time and refine the stop condition if needed.
         """,
         inputSchema: [
             "type": .string("object"),
@@ -16,6 +18,7 @@ struct CreateSubjectTool: MCPToolHandler {
                 "title": .object(["type": .string("string")]),
                 "summary": .object(["type": .string("string")]),
                 "initialRequest": .object(["type": .string("string")]),
+                "stopCondition": .object(["type": .string("string")]),
                 "details": .object(["type": .string("string")]),
                 "priority": .object(["type": .string("number")]),
                 "participants": .object(["type": .string("array"), "items": .object(["type": .string("string")])]),
@@ -24,12 +27,13 @@ struct CreateSubjectTool: MCPToolHandler {
                 "gmailThreadId": .object(["type": .string("string")]),
                 "calendarEventId": .object(["type": .string("string")])
             ]),
-            "required": .array([.string("title"), .string("summary"), .string("initialRequest")])
+            "required": .array([.string("title"), .string("summary"), .string("initialRequest"), .string("stopCondition")])
         ],
         exampleParameters: [
             .init(name: "title", value: .string("Preview subject")),
             .init(name: "summary", value: .string("Subject created from the tools browser preview.")),
             .init(name: "initialRequest", value: .string("Build the new server tools browser.")),
+            .init(name: "stopCondition", value: .string("The browser shows the subject with all core fields and the create/update flow works end to end.")),
             .init(name: "details", value: .string("Optional supporting details for the subject.")),
             .init(name: "priority", value: .number(1)),
             .init(name: "participants", value: .array([.string("Codex")])),
@@ -46,6 +50,7 @@ struct CreateSubjectTool: MCPToolHandler {
                 title: arguments.string(for: "title"),
                 summary: arguments.string(for: "summary"),
                 initialRequest: arguments.string(for: "initialRequest"),
+                stopCondition: arguments.string(for: "stopCondition"),
                 details: arguments.string(for: "details"),
                 priority: arguments.int(for: "priority"),
                 participants: arguments.stringArray(for: "participants"),
