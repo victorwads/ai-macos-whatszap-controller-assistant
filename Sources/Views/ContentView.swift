@@ -144,7 +144,8 @@ struct ContentView: View {
                     handsFreeClientVoiceSettings: appModel.handsFreeClientVoiceSettings,
                     inputLockSettings: appModel.inputLockSettings,
                     mcpSendPrefixSettings: appModel.mcpSendPrefixSettings,
-                    whatsAppWebSettings: appModel.whatsAppWebSettings
+                    whatsAppWebSettings: appModel.whatsAppWebSettings,
+                    whatsAppIntegrationSettings: appModel.whatsAppIntegrationSettings
                 )
                     .padding(12)
             case .integrationLogs:

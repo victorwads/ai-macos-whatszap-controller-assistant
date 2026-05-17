@@ -47,12 +47,19 @@ final class AppModel: ObservableObject {
     let inputLockSettings: InputLockSettingsModel
     let mcpSendPrefixSettings: MCPSendPrefixSettingsModel
     let whatsAppWebSettings: WhatsAppWebSettingsModel
+    let whatsAppIntegrationSettings: WhatsAppIntegrationSettingsModel
 
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
     let parser = WhatsAppAppParser()
     let whatsAppWebSessionStore = WhatsAppWebSessionStore()
     let whatsAppWebBridge = WhatsAppWebBridge()
+    lazy var whatsAppPollingOrchestrator = WhatsAppPollingOrchestrator(
+        memoryStore: memoryStore,
+        appendLog: { [weak self] message, level in
+            self?.appendLog(message, level: level)
+        }
+    )
     lazy var whatsAppWebDebugCaptureService = WhatsAppWebDebugCaptureService(
         log: { [weak self] message, level in
             self?.appendLog(message, level: level)
@@ -155,6 +162,7 @@ final class AppModel: ObservableObject {
         inputLockSettings = InputLockSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
         mcpSendPrefixSettings = MCPSendPrefixSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
         whatsAppWebSettings = WhatsAppWebSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
+        whatsAppIntegrationSettings = WhatsAppIntegrationSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
         whatsAppWebSessionStore.setCustomUserAgent(whatsAppWebSettings.effectiveCustomUserAgent)
         whatsAppWebSessionStore.setInspectable(whatsAppWebSettings.isInspectable)
         whatsAppWebSessionStore.setPageZoom(whatsAppWebSettings.pageZoom)

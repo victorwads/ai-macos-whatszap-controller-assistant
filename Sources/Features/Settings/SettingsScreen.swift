@@ -9,6 +9,7 @@ struct SettingsScreen: View {
     @ObservedObject var inputLockSettings: InputLockSettingsModel
     @ObservedObject var mcpSendPrefixSettings: MCPSendPrefixSettingsModel
     @ObservedObject var whatsAppWebSettings: WhatsAppWebSettingsModel
+    @ObservedObject var whatsAppIntegrationSettings: WhatsAppIntegrationSettingsModel
     @State private var newWhatsAppWebAccountName = ""
     @State private var isAddingWhatsAppWebAccount = false
 
@@ -80,6 +81,26 @@ struct SettingsScreen: View {
                             .buttonStyle(.plain)
                             .help("Experimental. This can temporarily block mouse and keyboard input during message send (up to 5 seconds).")
                         }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                GroupBox("WhatsApp Integration") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Active integration")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        Picker("Active integration", selection: $whatsAppIntegrationSettings.mode) {
+                            ForEach(WhatsAppIntegrationMode.allCases) { mode in
+                                Text(mode.title).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.radioGroup)
+
+                        Text("Web is the default. Desktop (Accessibility) remains available as a fallback.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

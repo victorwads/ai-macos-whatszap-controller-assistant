@@ -4,6 +4,7 @@ import WebKit
 enum WhatsAppWebBridgeError: LocalizedError {
     case unexpectedResponse
     case invalidSnapshotPayload
+    case elementNotFound
 
     var errorDescription: String? {
         switch self {
@@ -11,6 +12,8 @@ enum WhatsAppWebBridgeError: LocalizedError {
             return "Unexpected JavaScript response from WhatsApp Web."
         case .invalidSnapshotPayload:
             return "Could not decode WhatsApp Web snapshot payload."
+        case .elementNotFound:
+            return "Could not find the target element in WhatsApp Web."
         }
     }
 }
@@ -49,6 +52,38 @@ final class WhatsAppWebBridge {
             return try decoder.decode(WhatsAppWebChatCapture.self, from: data)
         } catch {
             throw WhatsAppWebBridgeError.invalidSnapshotPayload
+        }
+    }
+
+    struct ChatListItem: Codable, Equatable {
+        let title: String
+    }
+
+    func listChatTitles(from webView: WKWebView, limit: Int) async throws -> [ChatListItem] {
+        let resolvedLimit = max(1, min(limit, 200))
+        let script = Self.chatListScript.replacingOccurrences(of: "__LIMIT__", with: "\(resolvedLimit)")
+        let json = try await webView.evaluateJavaScriptString(script)
+
+        guard let data = json.data(using: .utf8) else {
+            throw WhatsAppWebBridgeError.invalidSnapshotPayload
+        }
+
+        do {
+            return try JSONDecoder().decode([ChatListItem].self, from: data)
+        } catch {
+            throw WhatsAppWebBridgeError.invalidSnapshotPayload
+        }
+    }
+
+    func openChatByTitle(from webView: WKWebView, title: String) async throws {
+        let escapedTitle = title
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+
+        let script = Self.openChatScript.replacingOccurrences(of: "__TITLE__", with: escapedTitle)
+        let result = try await webView.evaluateJavaScriptString(script)
+        guard result == "ok" else {
+            throw WhatsAppWebBridgeError.elementNotFound
         }
     }
 
@@ -155,6 +190,44 @@ final class WhatsAppWebBridge {
       }).filter((m) => m.text.length > 0);
 
       return JSON.stringify({ flow, selectedChatTitle, messages });
+    })();
+    """
+
+    private static let chatListScript = """
+    (() => {
+      const pickText = (value) => typeof value === 'string' ? value.trim() : '';
+      const limit = __LIMIT__;
+      // Best-effort: sidebar conversation rows often expose a `title` attribute somewhere.
+      const titleNodes = Array.from(document.querySelectorAll('[title]'))
+        .map((n) => pickText(n.getAttribute('title')))
+        .filter((t) => t.length > 0);
+
+      // Deduplicate and keep only plausible chat names (avoid common UI titles).
+      const deny = new Set(['WhatsApp', 'Tudo', 'Não lidas', 'Grupos', 'Unread', 'Groups', 'All']);
+      const unique = [];
+      const seen = new Set();
+      for (const t of titleNodes) {
+        if (deny.has(t)) continue;
+        if (seen.has(t)) continue;
+        seen.add(t);
+        unique.push({ title: t });
+        if (unique.length >= limit) break;
+      }
+      return JSON.stringify(unique);
+    })();
+    """
+
+    private static let openChatScript = """
+    (() => {
+      const pickText = (value) => typeof value === 'string' ? value.trim() : '';
+      const target = "__TITLE__";
+      const candidates = Array.from(document.querySelectorAll('[title]'));
+      const node = candidates.find((n) => pickText(n.getAttribute('title')) === target);
+      if (!node) return "not_found";
+      const clickable = node.closest('div[role=\"listitem\"], div[role=\"row\"], button') || node;
+      clickable.scrollIntoView({ block: 'center' });
+      clickable.click();
+      return "ok";
     })();
     """
 }

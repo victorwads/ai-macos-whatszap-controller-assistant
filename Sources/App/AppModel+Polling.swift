@@ -2,20 +2,32 @@ import Foundation
 
 extension AppModel {
     func refreshConversations() async {
-        guard prepareForWhatsAppInspection() else {
-            return
-        }
+        let mode = whatsAppIntegrationSettings.mode
 
-        do {
-            let snapshot = try accessibility.captureWhatsAppSnapshot(maxDepth: 14)
-            let screenState = parser.parse(snapshot: snapshot, messageLimit: 10)
-            let allowedConversations = filteredConversations(screenState.conversations)
-            memoryStore.replaceConversations(allowedConversations)
-            lastRefreshDescription = "List refreshed at \(Date().formatted(date: .omitted, time: .standard))"
-            appendLog("Parsed \(allowedConversations.count) conversations from WhatsApp.")
-            await refreshChangedChats(from: allowedConversations)
-        } catch {
-            appendLog("Failed to refresh conversations: \(error.localizedDescription)", level: .error)
+        switch mode {
+        case .web:
+            guard let accountId = selectedWhatsAppWebAccountId else {
+                appendLog("WhatsApp Web polling enabled but no account is selected.", level: .warning)
+                return
+            }
+            let provider = WebProvider(
+                accountId: accountId,
+                accounts: { [weak self] in self?.whatsAppWebAccounts ?? [] },
+                sessionStore: whatsAppWebSessionStore,
+                bridge: whatsAppWebBridge
+            )
+            await whatsAppPollingOrchestrator.refresh(provider: provider, messageLimit: 50)
+            lastRefreshDescription = "Web refreshed at \(Date().formatted(date: .omitted, time: .standard))"
+            return
+
+        case .desktopAX:
+            guard prepareForWhatsAppInspection() else {
+                return
+            }
+            let provider = DesktopAXProvider(accessibility: accessibility, parser: parser, interactor: interactor)
+            await whatsAppPollingOrchestrator.refresh(provider: provider, messageLimit: 10)
+            lastRefreshDescription = "Desktop refreshed at \(Date().formatted(date: .omitted, time: .standard))"
+            return
         }
     }
 
@@ -44,9 +56,13 @@ extension AppModel {
     }
 
     private func schedulePollingRefresh() async {
-        await accessibilityScheduler.enqueue(priority: .background) { [weak self] in
-            guard let self else { return }
-            await self.refreshConversations()
+        if whatsAppIntegrationSettings.mode == .desktopAX {
+            await accessibilityScheduler.enqueue(priority: .background) { [weak self] in
+                guard let self else { return }
+                await self.refreshConversations()
+            }
+        } else {
+            await refreshConversations()
         }
     }
 
