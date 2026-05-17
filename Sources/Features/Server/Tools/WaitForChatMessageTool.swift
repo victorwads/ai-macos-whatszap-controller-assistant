@@ -52,18 +52,24 @@ struct WaitForChatMessageTool: MCPToolHandler {
                 }
 
                 guard let chat else {
-                    return .success(.object([
-                        "timedOut": .bool(false),
-                        "chat": .null,
-                        "messages": .array(consumed.map(context.messageJSONValue))
-                    ]))
+                    return .success(
+                        .object([
+                            "timedOut": .bool(false),
+                            "chat": .null,
+                            "messages": .array(consumed.map(context.messageJSONValue))
+                        ])
+                        .pruningNulls()
+                    )
                 }
 
-                return .success(.object([
-                    "timedOut": .bool(false),
-                    "chat": context.conversationJSONValue(chat),
-                    "messages": .array(consumed.map(context.messageJSONValue))
-                ]))
+                return .success(
+                    .object([
+                        "timedOut": .bool(false),
+                        "chat": context.conversationJSONValue(chat),
+                        "messages": .array(consumed.map(context.messageJSONValue))
+                    ])
+                    .pruningNulls()
+                )
             }
 
             try? await Task.sleep(for: .milliseconds(350))

@@ -51,21 +51,14 @@ struct WaitForEventTool: MCPToolHandler {
                             ?? context.memoryStore.conversation(for: chatId)
                     }
 
-                    if let chat {
-                        events.append(.object([
+                    events.append(
+                        .object([
                             "type": .string("chat_messages"),
-                            "chat": .object([
-                                "id": .string(chat.id),
-                                "name": .string(chat.name)
-                            ])
-                        ]))
-                    } else {
-                        events.append(.object([
-                            "type": .string("chat_messages"),
-                            "chat": .null,
-                            "chatId": .string(chatId)
-                        ]))
-                    }
+                            "chat": chat.map { .object(["id": .string($0.id), "name": .string($0.name)]) } ?? .null,
+                            "chatId": chat == nil ? .string(chatId) : .null
+                        ])
+                        .pruningNulls()
+                    )
                 }
 
                 return .success(.object([
