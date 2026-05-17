@@ -42,6 +42,12 @@ The app is a single native macOS process with a few clearly separated layers:
 - `Sources/Repositories/` stores local state for memories, subjects, nicknames, chat history, and client voice events
 - `Sources/Views/` and `Sources/Features/*Screen.swift` provide the UI
 
+Integration mode is intentionally a transport detail:
+
+- WhatsApp Desktop and WhatsApp Web share the same local chat persistence
+- chat IDs are canonicalized from the chat title so the same chat keeps the same identity across integrations
+- polling, selection, and sending reuse shared matching rules instead of diverging per integration
+
 The MCP server runs inside the app process and serves JSON-RPC-style MCP traffic over HTTP.
 The default endpoint is:
 
