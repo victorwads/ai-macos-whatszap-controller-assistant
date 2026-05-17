@@ -17,7 +17,9 @@ Estado atual:
 - AccessibilityService ja tenta localizar o WhatsApp pelo bundle id net.whatsapp.WhatsApp e fazer dump inicial da arvore de acessibilidade.
 - Memories agora usam `key` como identificador canonico.
 - `get_memory(key)` faz busca exata.
-- `get_memories_by_tag(tag?)` filtra por tag e retorna tudo quando `tag` e omitida.
+- `search_memories(query, limit?)` retorna as melhores correspondencias por similaridade textual.
+- Sensitive data sao armazenados separadamente com `allowedChats`, `subjectId`, `reason` e historico de uso.
+- Todas as tools de Sensitive Data exigem `subjectId` e `reason`; auditoria e registro de uso acontecem automaticamente.
 - `title` ficou reservado para Subjects e Nicknames.
 - Keys devem ser enviadas em snake_case.
 - O build validado anteriormente usou:
@@ -34,7 +36,7 @@ Regras de trabalho:
 
 Proxima etapa sugerida:
 1. Rodar o app pelo Xcode e confirmar que Accessibility esta trusted.
-2. Validar `create_memory`, `get_memory` e `get_memories_by_tag` via MCP inspector.
+2. Validar `create_memory`, `get_memory`, `search_memories` e as tools de `SensitiveData` via MCP inspector, conferindo `subjectId` e `reason`.
 3. Melhorar o dump do WhatsApp para extrair uma representacao estruturada da tela, com role, title, value, description, frame e children relevantes.
 4. Criar modelos Swift para ConversationSummary e Message.
 5. Implementar list_conversations a partir da lista lateral do WhatsApp.

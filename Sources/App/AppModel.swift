@@ -103,6 +103,7 @@ final class AppModel: ObservableObject {
                 voiceAssistant: voiceAssistant,
                 nicknamesRepository: nicknamesRepository,
                 memoriesRepository: memoriesRepository,
+                sensitiveDataRepository: sensitiveDataRepository,
                 subjectsRepository: subjectsRepository,
                 clientVoiceEventsRepository: clientVoiceEventsRepository
             )
@@ -127,6 +128,7 @@ final class AppModel: ObservableObject {
     let serverCallsRepository = ServerCallsRepository.shared
     let nicknamesRepository = NicknamesRepository.shared
     let memoriesRepository = MemoriesRepository.shared
+    let sensitiveDataRepository = SensitiveDataRepository.shared
     let subjectsRepository = SubjectsRepository.shared
     let clientVoiceEventsRepository = ClientVoiceEventsRepository.shared
     let chatHistoryRepository = ChatHistoryRepository.shared

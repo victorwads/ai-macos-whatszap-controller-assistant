@@ -14,15 +14,13 @@ struct CreateMemoryTool: MCPToolHandler {
             "type": .string("object"),
             "properties": .object([
                 "key": .object(["type": .string("string")]),
-                "content": .object(["type": .string("string")]),
-                "tags": .object(["type": .string("array"), "items": .object(["type": .string("string")])])
+                "content": .object(["type": .string("string")])
             ]),
             "required": .array([.string("key"), .string("content")])
         ],
         exampleParameters: [
             .init(name: "key", value: .string("victor_assertive_feedback_rule")),
-            .init(name: "content", value: .string("Whenever Victor becomes rude or unnecessarily aggressive, explain calmly how he could have said it in a more assertive and non-violent way.")),
-            .init(name: "tags", value: .array([.string("behavior"), .string("standing_instruction"), .string("victor")]))
+            .init(name: "content", value: .string("Whenever Victor becomes rude or unnecessarily aggressive, explain calmly how he could have said it in a more assertive and non-violent way."))
         ],
         traits: [.writesState]
     )
@@ -32,8 +30,7 @@ struct CreateMemoryTool: MCPToolHandler {
         do {
             let result = try await context.memoriesRepository.save(
                 key: arguments.string(for: "key"),
-                content: arguments.string(for: "content"),
-                tags: arguments.stringArray(for: "tags")
+                content: arguments.string(for: "content")
             )
             return .success(.object([
                 "ok": .bool(true),

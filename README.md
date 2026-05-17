@@ -104,9 +104,18 @@ The server currently registers these tools:
 
 - `create_memory`
 - `get_memory`
+- `search_memories`
 - `list_memories`
-- `get_memories_by_tag`
 - `delete_memory`
+
+### Sensitive data tools
+
+- `save_sensitive_data`
+- `update_sensitive_data`
+- `get_sensitive_data`
+- `search_sensitive_data`
+- `list_sensitive_data`
+- `delete_sensitive_data`
 
 ### Subject tools
 
@@ -129,8 +138,11 @@ The server currently registers these tools:
 - `wait_for_chat_message` waits for unread messages in a specific chat or a client prompt.
 - `wait_for_event` waits for any unread WhatsApp messages or a client prompt.
 - `create_memory` behaves like save/upsert by `key`: it updates an existing memory instead of creating duplicates.
+- `search_memories` returns the best matching memories by textual similarity.
 - `list_memories` is the primary way to review durable context, standing instructions, and recurring preferences.
-- `get_memories_by_tag` returns all memories when `tag` is omitted.
+- `list_sensitive_data` shows the known sensitive records and `search_sensitive_data` finds the closest matches by text.
+- All sensitive data tools require a `subjectId` and a visible `reason`, and each call automatically appends an audit entry.
+- The Sensitive Data screen shows the stored records and a live audit feed of reads, searches, writes, and deletions.
 - `get_memory` looks up by exact `key`.
 - Subject entries already include optional `gmailThreadId` and `calendarEventId` fields for future cross-app linking.
 - Outgoing WhatsApp messages can be prefixed and suffixed through the settings screen.

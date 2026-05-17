@@ -24,11 +24,11 @@ struct GetMemoryTool: MCPToolHandler {
             return .failure(MemoriesRepositoryError.missingParameter("key"))
         }
 
-        let entries = await context.memoriesRepository.list()
-        if let entry = entries.first(where: { $0.key == rawKey }) {
+        do {
+            let entry = try await context.memoriesRepository.get(key: rawKey)
             return .success(.object(["entry": context.memoryEntryJSONValue(entry)]))
+        } catch {
+            return .success(.object(["error": .string("Memory not found"), "key": .string(rawKey)]))
         }
-
-        return .success(.object(["error": .string("Memory not found"), "key": .string(rawKey)]))
     }
 }

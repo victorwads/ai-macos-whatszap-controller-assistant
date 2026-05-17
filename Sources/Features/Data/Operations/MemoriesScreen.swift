@@ -4,6 +4,8 @@ struct MemoriesScreen: View {
     @EnvironmentObject private var appModel: AppModel
 
     @State private var entries: [MemoryEntry] = []
+    @State private var searchQuery = ""
+    @State private var searchResults: [MemorySearchResult] = []
     @State private var errorText: String?
     @State private var isWorking = false
 
@@ -14,6 +16,12 @@ struct MemoriesScreen: View {
                     .font(.headline)
                 Spacer()
             }
+
+            TextField("Search memories", text: $searchQuery)
+                .textFieldStyle(.roundedBorder)
+                .onChange(of: searchQuery) { _, _ in
+                    Task { await refreshSearch() }
+                }
 
             if let errorText {
                 Text(errorText)
@@ -26,13 +34,6 @@ struct MemoriesScreen: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(entry.key)
                             .font(.body.weight(.semibold))
-
-                        if !entry.tags.isEmpty {
-                            Text(entry.tags.joined(separator: " · "))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
 
                         Text(entry.content)
                             .font(.callout)
@@ -59,6 +60,29 @@ struct MemoriesScreen: View {
                 }
                 .padding(.vertical, 2)
             }
+
+            if !searchResults.isEmpty {
+                Text("Top matches")
+                    .font(.headline)
+
+                List(searchResults, id: \.entry.id) { result in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(result.entry.key)
+                                .font(.body.weight(.semibold))
+                            Spacer()
+                            Text(String(format: "%.2f", result.score))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(result.entry.content)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+                .frame(minHeight: 180)
+            }
         }
         .padding(12)
         .task {
@@ -75,6 +99,12 @@ struct MemoriesScreen: View {
 
     private func reload() async {
         entries = await appModel.memoriesRepository.list()
+        await refreshSearch()
+    }
+
+    private func refreshSearch() async {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        searchResults = await appModel.memoriesRepository.search(query: query.isEmpty ? nil : query, limit: 3)
     }
 
     private func delete(_ entry: MemoryEntry) async {

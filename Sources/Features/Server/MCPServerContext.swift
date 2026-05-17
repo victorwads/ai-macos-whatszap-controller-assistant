@@ -11,6 +11,7 @@ struct MCPServerContext {
     let voiceAssistant: VoiceAssistant
     let nicknamesRepository: NicknamesRepository
     let memoriesRepository: MemoriesRepository
+    let sensitiveDataRepository: SensitiveDataRepository
     let subjectsRepository: SubjectsRepository
     let clientVoiceEventsRepository: ClientVoiceEventsRepository
 }
@@ -121,9 +122,78 @@ extension MCPServerContext {
     func memoryEntryJSONValue(_ entry: MemoryEntry) -> JSONValue {
         .object([
             "key": .string(entry.key),
-            "content": .string(entry.content),
-            "tags": .array(entry.tags.map(JSONValue.string))
+            "content": .string(entry.content)
         ])
+        .pruningNulls()
+    }
+
+    func memorySearchResultJSONValue(_ result: MemorySearchResult) -> JSONValue {
+        .object([
+            "score": .number(result.score),
+            "entry": memoryEntryJSONValue(result.entry)
+        ])
+        .pruningNulls()
+    }
+
+    func sensitiveDataUsageJSONValue(_ entry: SensitiveDataUsageEntry) -> JSONValue {
+        .object([
+            "id": .string(entry.id.uuidString),
+            "timestamp": .from(date: entry.timestamp),
+            "chatId": .string(entry.chatId),
+            "subjectId": .nonEmptyString(entry.subjectId),
+            "subjectTitle": .nonEmptyString(entry.subjectTitle),
+            "purpose": .string(entry.purpose)
+        ])
+        .pruningNulls()
+    }
+
+    func sensitiveDataSummaryJSONValue(_ entry: SensitiveDataEntry) -> JSONValue {
+        .object([
+            "id": .string(entry.id.uuidString),
+            "key": .string(entry.key),
+            "label": .string(entry.label),
+            "kind": .string(entry.kind),
+            "valuePreview": .string(entry.maskedValue),
+            "allowedChats": .array(entry.allowedChats.map(JSONValue.string)),
+            "usageCount": .number(Double(entry.usageHistory.count)),
+            "lastUsedAt": .from(date: entry.lastUsedAt),
+            "createdAt": .from(date: entry.createdAt),
+            "updatedAt": .from(date: entry.updatedAt)
+        ])
+        .pruningNulls()
+    }
+
+    func sensitiveDataAuditJSONValue(_ entry: SensitiveDataAuditEntry) -> JSONValue {
+        .object([
+            "id": .string(entry.id.uuidString),
+            "timestamp": .from(date: entry.timestamp),
+            "action": .string(entry.action.rawValue),
+            "subjectId": .string(entry.subjectId),
+            "reason": .string(entry.reason),
+            "key": .nonEmptyString(entry.key),
+            "entryId": .nonEmptyString(entry.entryId?.uuidString),
+            "query": .nonEmptyString(entry.query),
+            "matchedCount": .optionalNumber(entry.matchedCount.map(Double.init))
+        ])
+        .pruningNulls()
+    }
+
+    func sensitiveDataEntryJSONValue(_ entry: SensitiveDataEntry) -> JSONValue {
+        .object([
+            "id": .string(entry.id.uuidString),
+            "key": .string(entry.key),
+            "label": .string(entry.label),
+            "kind": .string(entry.kind),
+            "value": .string(entry.value),
+            "valuePreview": .string(entry.maskedValue),
+            "allowedChats": .array(entry.allowedChats.map(JSONValue.string)),
+            "usageHistory": .array(entry.usageHistory.map(sensitiveDataUsageJSONValue)),
+            "usageCount": .number(Double(entry.usageHistory.count)),
+            "lastUsedAt": .from(date: entry.lastUsedAt),
+            "createdAt": .from(date: entry.createdAt),
+            "updatedAt": .from(date: entry.updatedAt)
+        ])
+        .pruningNulls()
     }
 
     func subjectEntryJSONValue(_ entry: SubjectEntry) -> JSONValue {

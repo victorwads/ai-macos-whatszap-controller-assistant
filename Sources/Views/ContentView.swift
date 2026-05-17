@@ -9,6 +9,7 @@ struct ContentView: View {
         case nicknames
         case subjects
         case memories
+        case sensitiveData
         case clientVoice
         case whatsAppChats
         case integrationLogs
@@ -24,6 +25,7 @@ struct ContentView: View {
             case .nicknames: "Nicknames"
             case .subjects: "Subjects"
             case .memories: "Memories"
+            case .sensitiveData: "Sensitive Data"
             case .clientVoice: "Client Voice"
             case .whatsAppChats: "WhatsApp"
             case .integrationLogs: "Logs"
@@ -39,6 +41,7 @@ struct ContentView: View {
             case .nicknames: "tag"
             case .subjects: "checklist"
             case .memories: "brain"
+            case .sensitiveData: "lock.shield"
             case .clientVoice: "waveform"
             case .whatsAppChats: "bubble.left.and.bubble.right"
             case .integrationLogs: "list.bullet.rectangle"
@@ -57,6 +60,7 @@ struct ContentView: View {
                     sidebarItem(.nicknames)
                     sidebarItem(.subjects)
                     sidebarItem(.memories)
+                    sidebarItem(.sensitiveData)
                     sidebarItem(.clientVoice)
                 }
 
@@ -97,6 +101,8 @@ struct ContentView: View {
                 SubjectsScreen()
             case .memories:
                 MemoriesScreen()
+            case .sensitiveData:
+                SensitiveDataScreen()
             case .clientVoice:
                 ClientVoiceScreen()
             case .whatsAppChats:

@@ -35,7 +35,49 @@ actor MemoriesRepository {
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 
-    func save(key: String?, content: String?, tags: [String]?) throws -> SaveResult {
+    func get(key: String?) throws -> MemoryEntry {
+        let trimmedKey = (key ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedKey.isEmpty {
+            throw MemoriesRepositoryError.missingParameter("key")
+        }
+
+        guard let found = loadAll().first(where: { $0.key == trimmedKey }) else {
+            throw MemoriesRepositoryError.invalidParameter("Memory not found")
+        }
+
+        return found
+    }
+
+    func search(query: String?, limit: Int = 3) -> [MemorySearchResult] {
+        let trimmedQuery = (query ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let all = loadAll()
+
+        if trimmedQuery.isEmpty {
+            return all
+                .sorted { $0.updatedAt > $1.updatedAt }
+                .prefix(max(1, limit))
+                .map { MemorySearchResult(entry: $0, score: 1) }
+        }
+
+        let ranked = all
+            .map { entry -> MemorySearchResult in
+                let score = TextSimilarity.bestScore(
+                    query: trimmedQuery,
+                    candidates: [entry.key, entry.content]
+                )
+                return MemorySearchResult(entry: entry, score: score)
+            }
+            .sorted {
+                if $0.score == $1.score {
+                    return $0.entry.updatedAt > $1.entry.updatedAt
+                }
+                return $0.score > $1.score
+            }
+
+        return Array(ranked.prefix(max(1, limit)))
+    }
+
+    func save(key: String?, content: String?) throws -> SaveResult {
         let trimmedKey = (key ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedKey.isEmpty {
             throw MemoriesRepositoryError.missingParameter("key")
@@ -48,17 +90,14 @@ actor MemoriesRepository {
 
         var all = loadAll()
         let now = Date()
-        let normalizedTags = normalizedTags(tags)
 
         let matchingIndexes = all.indices.filter { all[$0].key == trimmedKey }
         if let firstIndex = matchingIndexes.first {
             let existing = all[firstIndex]
-            let mergedTags = Array(Set(existing.tags + normalizedTags)).sorted()
             let updatedEntry = MemoryEntry(
                 id: existing.id,
                 key: trimmedKey,
                 content: trimmedContent,
-                tags: mergedTags,
                 createdAt: existing.createdAt,
                 updatedAt: now
             )
@@ -76,7 +115,6 @@ actor MemoriesRepository {
             id: UUID(),
             key: trimmedKey,
             content: trimmedContent,
-            tags: normalizedTags,
             createdAt: now,
             updatedAt: now
         )
@@ -129,16 +167,5 @@ actor MemoriesRepository {
         }
         defaults.set(data, forKey: storageKey)
         NotificationCenter.default.post(name: .memoriesRepositoryDidChange, object: nil)
-    }
-
-    private func normalizedTags(_ tags: [String]?) -> [String] {
-        Array(
-            Set(
-                (tags ?? [])
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-            )
-        )
-        .sorted()
     }
 }
