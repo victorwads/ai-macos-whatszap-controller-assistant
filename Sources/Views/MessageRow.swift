@@ -4,6 +4,8 @@ struct MessageRow: View {
     let message: Message
     let onMarkAsUnhandled: (() -> Void)?
     let onMarkAsUnhandledAndFollowing: (() -> Void)?
+    let onMarkAsHandled: (() -> Void)?
+    let onMarkAsHandledAndFollowing: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -35,7 +37,7 @@ struct MessageRow: View {
                 .font(.body)
                 .textSelection(.enabled)
 
-            if shouldShowMarkUnhandledButton {
+            if shouldShowMarkUnhandledMenu {
                 HStack {
                     Spacer()
 
@@ -53,6 +55,25 @@ struct MessageRow: View {
                     .help("Recoloca esta mensagem, ou ela e as seguintes, na fila dos waits do assistente.")
                 }
             }
+
+            if shouldShowMarkHandledMenu {
+                HStack {
+                    Spacer()
+
+                    Menu("Mark as read") {
+                        Button("Mark this as read") {
+                            onMarkAsHandled?()
+                        }
+
+                        Button("Mark this and following as read") {
+                            onMarkAsHandledAndFollowing?()
+                        }
+                    }
+                    .menuStyle(.borderlessButton)
+                    .controlSize(.small)
+                    .help("Marks this message, or this message and the following ones, as read by the assistant.")
+                }
+            }
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -67,8 +88,12 @@ struct MessageRow: View {
             .foregroundStyle(message.isHandled ? Color.secondary : Color.orange)
     }
 
-    private var shouldShowMarkUnhandledButton: Bool {
+    private var shouldShowMarkUnhandledMenu: Bool {
         message.direction == .incoming && message.isHandled
+    }
+
+    private var shouldShowMarkHandledMenu: Bool {
+        message.direction == .incoming && !message.isHandled
     }
 
     private var timestampLabel: String? {
@@ -102,7 +127,9 @@ struct MessageRow: View {
             rawAccessibilityText: "Olá! Isso é um preview."
         ),
         onMarkAsUnhandled: {},
-        onMarkAsUnhandledAndFollowing: {}
+        onMarkAsUnhandledAndFollowing: {},
+        onMarkAsHandled: {},
+        onMarkAsHandledAndFollowing: {}
     )
     .padding()
     .frame(width: 420)

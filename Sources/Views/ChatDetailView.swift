@@ -9,6 +9,8 @@ struct ChatDetailView: View {
     let onToggleBlocked: () -> Void
     let onMarkMessageUnhandled: (Message) -> Void
     let onMarkMessageAndFollowingUnhandled: (Message) -> Void
+    let onMarkMessageHandled: (Message) -> Void
+    let onMarkMessageAndFollowingHandled: (Message) -> Void
     let onSend: () -> Void
 
     var body: some View {
@@ -27,6 +29,12 @@ struct ChatDetailView: View {
                                     },
                                     onMarkAsUnhandledAndFollowing: {
                                         onMarkMessageAndFollowingUnhandled(message)
+                                    },
+                                    onMarkAsHandled: {
+                                        onMarkMessageHandled(message)
+                                    },
+                                    onMarkAsHandledAndFollowing: {
+                                        onMarkMessageAndFollowingHandled(message)
                                     }
                                 )
                             }
@@ -129,6 +137,8 @@ struct ChatDetailView: View {
         onToggleBlocked: {},
         onMarkMessageUnhandled: { _ in },
         onMarkMessageAndFollowingUnhandled: { _ in },
+        onMarkMessageHandled: { _ in },
+        onMarkMessageAndFollowingHandled: { _ in },
         onSend: {}
     )
     .frame(width: 700, height: 520)
@@ -144,6 +154,8 @@ struct ChatDetailView: View {
         onToggleBlocked: {},
         onMarkMessageUnhandled: { _ in },
         onMarkMessageAndFollowingUnhandled: { _ in },
+        onMarkMessageHandled: { _ in },
+        onMarkMessageAndFollowingHandled: { _ in },
         onSend: {}
     )
     .frame(width: 700, height: 520)

@@ -212,6 +212,24 @@ final class WhatsAppMemoryStore: ObservableObject {
         updateMessages(messageIds: messageIds, handledAt: nil, chatId: chatId)
     }
 
+    func markMessageAndFollowingAsHandled(messageId: String, chatId: String) {
+        guard let state = chatStatesById[chatId],
+              let index = state.messages.firstIndex(where: { $0.id == messageId }) else {
+            return
+        }
+
+        let messageIds = Set(
+            state.messages[index...]
+                .filter { $0.direction == .incoming }
+                .map(\.id)
+        )
+        guard !messageIds.isEmpty else {
+            return
+        }
+
+        updateMessages(messageIds: messageIds, handledAt: Date(), chatId: chatId)
+    }
+
     /// Wait indefinitely (no timeout) until a new message arrives.
     func waitForNextMessage(chatId: String?, afterMessageId: String?) async -> WaitForMessageResult? {
         if let immediateMatch = latestMessageResult(chatId: chatId, afterMessageId: afterMessageId) {
