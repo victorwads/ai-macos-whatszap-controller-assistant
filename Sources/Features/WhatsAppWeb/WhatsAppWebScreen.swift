@@ -103,7 +103,7 @@ struct WhatsAppWebScreen: View {
             ContentUnavailableView(
                 "No WhatsApp Web account",
                 systemImage: "globe",
-                description: Text("Create an account in Settings to keep a WhatsApp Web session running in the background.")
+                description: Text("Create an account from the home screen to keep a WhatsApp Web session running in the background.")
             )
         }
     }

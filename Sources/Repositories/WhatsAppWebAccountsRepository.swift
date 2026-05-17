@@ -60,6 +60,17 @@ actor WhatsAppWebAccountsRepository {
         return true
     }
 
+    func updateAutoStart(id: UUID, isAutoStart: Bool) -> WhatsAppWebAccount? {
+        var accounts = loadAll()
+        guard let index = accounts.firstIndex(where: { $0.id == id }) else {
+            return nil
+        }
+
+        accounts[index].isAutoStart = isAutoStart
+        persistAll(accounts)
+        return accounts[index]
+    }
+
     private func loadAll() -> [WhatsAppWebAccount] {
         guard let data = defaults.data(forKey: storageKey) else {
             return []

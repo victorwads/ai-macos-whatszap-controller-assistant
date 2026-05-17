@@ -8,11 +8,13 @@ import Speech
 final class AppModel: ObservableObject {
     enum StartupMode {
         case live
+        case home
         case preview
     }
 
     let profile: AppProfile
     let profileIndex: Int
+    let startupMode: StartupMode
     private let profileDefaults: UserDefaults
     let primaryWhatsAppWebAccountId: UUID?
 
@@ -171,6 +173,7 @@ final class AppModel: ObservableObject {
     ) {
         self.profile = profile
         self.profileIndex = profileIndex
+        self.startupMode = startupMode
         self.primaryWhatsAppWebAccountId = primaryWhatsAppWebAccountId
         profileDefaults = ProfileDefaults.defaults(for: profile)
 
@@ -241,15 +244,15 @@ final class AppModel: ObservableObject {
             refreshMicrophoneAuthorization()
             refreshSpeechRecognitionAuthorization()
             bindFeatureSettings()
-        Task { [weak self] in
-            await self?.markStaleClientVoiceAsLost()
-            await self?.refreshPendingClientAskCount()
-            await self?.refreshPendingClientPromptWaitCount()
-            await self?.loadWhatsAppWebAccounts()
-        }
-        Task { [weak self] in
-            await self?.loadPersistedServerCalls()
-        }
+            Task { [weak self] in
+                await self?.markStaleClientVoiceAsLost()
+                await self?.refreshPendingClientAskCount()
+                await self?.refreshPendingClientPromptWaitCount()
+                await self?.loadWhatsAppWebAccounts()
+            }
+            Task { [weak self] in
+                await self?.loadPersistedServerCalls()
+            }
             Task { [weak self] in
                 guard let self else { return }
                 await self.voiceAssistant.setExperimentalSpeakEnabled(self.voiceSettings.experimentalSpeakApiEnabled)
@@ -260,6 +263,11 @@ final class AppModel: ObservableObject {
                 await startMCPServer()
                 startPolling()
             }
+
+        case .home:
+            runtimeDescription = "Profiles home"
+            lastRefreshDescription = "Ready"
+            mcpServerStatusDescription = "Stopped"
 
         case .preview:
             // Keep previews deterministic and side-effect free.

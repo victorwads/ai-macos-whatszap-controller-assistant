@@ -7,14 +7,18 @@ extension AppModel {
         if let primaryWhatsAppWebAccountId,
            let match = accounts.first(where: { $0.id == primaryWhatsAppWebAccountId }) {
             whatsAppWebAccounts = [match]
-            whatsAppWebSessionStore.warmSessions(for: [match])
             selectedWhatsAppWebAccountId = match.id
+            guard startupMode == .live else { return }
             restartWhatsAppWebBridgePolling()
             return
         }
 
         whatsAppWebAccounts = accounts
-        whatsAppWebSessionStore.warmSessions(for: accounts)
+
+        guard startupMode == .live else {
+            return
+        }
+
         restartWhatsAppWebBridgePolling()
 
         if let selectedWhatsAppWebAccountId,
@@ -35,13 +39,23 @@ extension AppModel {
                 }
                 return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
             }
-            _ = whatsAppWebSessionStore.webView(for: account)
-            selectedWhatsAppWebAccountId = account.id
             appendLog("Created WhatsApp Web account '\(account.name)'.")
-            restartWhatsAppWebBridgePolling()
         } catch {
             appendLog("Failed to create WhatsApp Web account: \(error.localizedDescription)", level: .error)
         }
+    }
+
+    func updateWhatsAppWebAccountAutoStart(id: UUID, isAutoStart: Bool) async {
+        guard let updated = await whatsAppWebAccountsRepository.updateAutoStart(id: id, isAutoStart: isAutoStart) else {
+            appendLog("Could not update WhatsApp Web account auto start.", level: .warning)
+            return
+        }
+
+        if let index = whatsAppWebAccounts.firstIndex(where: { $0.id == updated.id }) {
+            whatsAppWebAccounts[index] = updated
+        }
+
+        appendLog("Updated auto start for '\(updated.name)' to \(updated.isAutoStart ? "on" : "off").")
     }
 
     func deleteWhatsAppWebAccount(id: UUID) async {
@@ -51,14 +65,7 @@ extension AppModel {
             return
         }
 
-        let removedWasSelected = selectedWhatsAppWebAccountId == id
-        whatsAppWebSessionStore.removeSession(accountId: id)
         whatsAppWebAccounts.removeAll { $0.id == id }
-        if removedWasSelected {
-            selectedWhatsAppWebAccountId = whatsAppWebAccounts.first?.id
-        }
-        whatsAppWebPageSnapshotsByAccountId.removeValue(forKey: id)
-        restartWhatsAppWebBridgePolling()
         appendLog("Deleted WhatsApp Web account.")
     }
 
@@ -138,6 +145,12 @@ extension AppModel {
     }
 
     func restartWhatsAppWebBridgePolling() {
+        guard startupMode == .live else {
+            whatsAppWebBridgePollingTask?.cancel()
+            whatsAppWebBridgePollingTask = nil
+            return
+        }
+
         whatsAppWebBridgePollingTask?.cancel()
         whatsAppWebBridgePollingTask = nil
 
