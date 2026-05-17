@@ -8,6 +8,9 @@ struct SettingsScreen: View {
     @ObservedObject var handsFreeClientVoiceSettings: HandsFreeClientVoiceSettingsModel
     @ObservedObject var inputLockSettings: InputLockSettingsModel
     @ObservedObject var mcpSendPrefixSettings: MCPSendPrefixSettingsModel
+    @ObservedObject var whatsAppWebSettings: WhatsAppWebSettingsModel
+    @State private var newWhatsAppWebAccountName = ""
+    @State private var isAddingWhatsAppWebAccount = false
 
     var body: some View {
         ScrollView {
@@ -116,6 +119,83 @@ struct SettingsScreen: View {
                         Text("Edit allow/deny lists from the Conversations screen.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                GroupBox("WhatsApp Web Accounts") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Create and remove embedded WhatsApp Web sessions. Sessions stay alive in the background after creation.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Safari User Agent")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+
+                            TextField("Safari user agent", text: $whatsAppWebSettings.customUserAgent, axis: .vertical)
+                                .textFieldStyle(.roundedBorder)
+                                .lineLimit(3...6)
+
+                            HStack(spacing: 10) {
+                                Button("Reset Default") {
+                                    whatsAppWebSettings.resetToDefault()
+                                }
+
+                                Text("Applied to all embedded WhatsApp Web sessions and persisted for the next app launch.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Divider()
+
+                        HStack(spacing: 8) {
+                            TextField("My WhatsApp account", text: $newWhatsAppWebAccountName)
+                                .textFieldStyle(.roundedBorder)
+
+                            Button {
+                                Task { await addWhatsAppWebAccount() }
+                            } label: {
+                                Label("Add", systemImage: "plus")
+                            }
+                            .disabled(isAddingWhatsAppWebAccount || newWhatsAppWebAccountName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+
+                        if appModel.whatsAppWebAccounts.isEmpty {
+                            Text("No WhatsApp Web accounts yet.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(appModel.whatsAppWebAccounts) { account in
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(account.name)
+                                            Text("Profile \(account.profileIdentifier.uuidString.prefix(8))")
+                                                .font(.caption.monospaced())
+                                                .foregroundStyle(.secondary)
+                                        }
+
+                                        Spacer()
+
+                                        Button {
+                                            appModel.selectedWhatsAppWebAccountId = account.id
+                                        } label: {
+                                            Label("Open", systemImage: "arrow.up.right.square")
+                                        }
+                                        .buttonStyle(.borderless)
+
+                                        Button(role: .destructive) {
+                                            Task { await appModel.deleteWhatsAppWebAccount(id: account.id) }
+                                        } label: {
+                                            Label("Remove", systemImage: "trash")
+                                        }
+                                        .buttonStyle(.borderless)
+                                    }
+                                }
+                            }
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -348,5 +428,18 @@ struct SettingsScreen: View {
             .padding(20)
             .frame(maxWidth: 820, alignment: .topLeading)
         }
+    }
+}
+
+extension SettingsScreen {
+    private func addWhatsAppWebAccount() async {
+        let trimmedName = newWhatsAppWebAccountName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
+        isAddingWhatsAppWebAccount = true
+        defer { isAddingWhatsAppWebAccount = false }
+
+        await appModel.addWhatsAppWebAccount(named: trimmedName)
+        newWhatsAppWebAccountName = ""
     }
 }

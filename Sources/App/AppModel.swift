@@ -38,15 +38,19 @@ final class AppModel: ObservableObject {
     @Published var microphoneAuthorized = true
     @Published var speechRecognitionAuthorized = true
     @Published var speechSynthesizerSpeaking = false
+    @Published var whatsAppWebAccounts: [WhatsAppWebAccount] = []
+    @Published var selectedWhatsAppWebAccountId: UUID?
 
     let voiceSettings: VoiceSettingsModel
     let handsFreeClientVoiceSettings: HandsFreeClientVoiceSettingsModel
     let inputLockSettings: InputLockSettingsModel
     let mcpSendPrefixSettings: MCPSendPrefixSettingsModel
+    let whatsAppWebSettings: WhatsAppWebSettingsModel
 
     let accessibility = AccessibilityService()
     let accessibilityScheduler = AccessibilityActionScheduler()
     let parser = WhatsAppAppParser()
+    let whatsAppWebSessionStore = WhatsAppWebSessionStore()
     let clientPromptWaitRepository = ClientPromptWaitRepository.shared
     lazy var whatsappMessageSendCoordinator = WhatsAppMessageSendCoordinator(
         accessibility: accessibility,
@@ -130,6 +134,7 @@ final class AppModel: ObservableObject {
     let memoriesRepository = MemoriesRepository.shared
     let sensitiveDataRepository = SensitiveDataRepository.shared
     let subjectsRepository = SubjectsRepository.shared
+    let whatsAppWebAccountsRepository = WhatsAppWebAccountsRepository.shared
     let clientVoiceEventsRepository = ClientVoiceEventsRepository.shared
     let chatHistoryRepository = ChatHistoryRepository.shared
     var chatHistoryListenerId: UUID?
@@ -141,6 +146,8 @@ final class AppModel: ObservableObject {
         handsFreeClientVoiceSettings = HandsFreeClientVoiceSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
         inputLockSettings = InputLockSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
         mcpSendPrefixSettings = MCPSendPrefixSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
+        whatsAppWebSettings = WhatsAppWebSettingsModel(loadPersistedValues: shouldLoadPersistedSettings)
+        whatsAppWebSessionStore.setCustomUserAgent(whatsAppWebSettings.effectiveCustomUserAgent)
 
         voiceAssistant.onSpeakingStateChanged = { [weak self] isSpeaking in
             self?.speechSynthesizerSpeaking = isSpeaking
@@ -160,6 +167,7 @@ final class AppModel: ObservableObject {
             await self?.markStaleClientVoiceAsLost()
             await self?.refreshPendingClientAskCount()
             await self?.refreshPendingClientPromptWaitCount()
+            await self?.loadWhatsAppWebAccounts()
         }
         Task { [weak self] in
             await self?.loadPersistedServerCalls()
@@ -215,6 +223,14 @@ final class AppModel: ObservableObject {
                 Task { @MainActor [weak self] in
                     await self?.refreshPendingClientAskCount()
                 }
+            }
+            .store(in: &cancellables)
+
+        whatsAppWebSettings.$customUserAgent
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] value in
+                self?.whatsAppWebSessionStore.setCustomUserAgent(value)
             }
             .store(in: &cancellables)
     }

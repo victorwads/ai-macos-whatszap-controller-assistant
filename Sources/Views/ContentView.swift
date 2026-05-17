@@ -6,22 +6,38 @@ struct ContentView: View {
     @State private var selectedSubjectId: UUID?
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
-    enum SidebarScreen: String, CaseIterable, Identifiable {
+    enum SidebarScreen: Hashable, Identifiable {
         case nicknames
         case subjects
         case memories
         case sensitiveData
         case clientVoice
         case whatsAppChats
+        case whatsAppWebAccount(UUID)
         case integrationLogs
         case integrationDebug
         case serverLogs
         case serverTools
         case settings
 
-        var id: String { rawValue }
+        var id: String {
+            switch self {
+            case .nicknames: "nicknames"
+            case .subjects: "subjects"
+            case .memories: "memories"
+            case .sensitiveData: "sensitiveData"
+            case .clientVoice: "clientVoice"
+            case .whatsAppChats: "whatsAppChats"
+            case .whatsAppWebAccount(let id): "whatsAppWebAccount:\(id.uuidString)"
+            case .integrationLogs: "integrationLogs"
+            case .integrationDebug: "integrationDebug"
+            case .serverLogs: "serverLogs"
+            case .serverTools: "serverTools"
+            case .settings: "settings"
+            }
+        }
 
-        var title: String {
+        var defaultTitle: String {
             switch self {
             case .nicknames: "Nicknames"
             case .subjects: "Subjects"
@@ -29,6 +45,7 @@ struct ContentView: View {
             case .sensitiveData: "Sensitive Data"
             case .clientVoice: "Client Voice"
             case .whatsAppChats: "WhatsApp"
+            case .whatsAppWebAccount: "WhatsApp Web"
             case .integrationLogs: "Logs"
             case .integrationDebug: "Debug"
             case .serverLogs: "Logs"
@@ -45,6 +62,7 @@ struct ContentView: View {
             case .sensitiveData: "lock.shield"
             case .clientVoice: "waveform"
             case .whatsAppChats: "bubble.left.and.bubble.right"
+            case .whatsAppWebAccount: "globe"
             case .integrationLogs: "list.bullet.rectangle"
             case .integrationDebug: "point.3.connected.trianglepath.dotted"
             case .serverLogs: "server.rack"
@@ -56,7 +74,7 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            List(selection: Binding(get: { selectedScreen }, set: { selectedScreen = $0 ?? selectedScreen })) {
+            List(selection: Binding(get: { selectedScreen }, set: { handleSidebarSelection($0) })) {
                 Section("Data") {
                     sidebarItem(.nicknames)
                     sidebarItem(.subjects)
@@ -67,6 +85,9 @@ struct ContentView: View {
 
                 Section("WhatsApp Integration") {
                     sidebarItem(.whatsAppChats)
+                    ForEach(appModel.whatsAppWebAccounts) { account in
+                        sidebarItem(.whatsAppWebAccount(account.id), title: account.name)
+                    }
                     sidebarItem(.integrationLogs)
                     sidebarItem(.integrationDebug)
                 }
@@ -113,13 +134,17 @@ struct ContentView: View {
                 ClientVoiceScreen()
             case .whatsAppChats:
                 ConversationsScreen()
+            case .whatsAppWebAccount(let accountId):
+                let _ = syncSelectedWhatsAppWebAccount(with: accountId)
+                WhatsAppWebScreen()
             case .settings:
                 SettingsScreen(
                     appModel: appModel,
                     voiceSettings: appModel.voiceSettings,
                     handsFreeClientVoiceSettings: appModel.handsFreeClientVoiceSettings,
                     inputLockSettings: appModel.inputLockSettings,
-                    mcpSendPrefixSettings: appModel.mcpSendPrefixSettings
+                    mcpSendPrefixSettings: appModel.mcpSendPrefixSettings,
+                    whatsAppWebSettings: appModel.whatsAppWebSettings
                 )
                     .padding(12)
             case .integrationLogs:
@@ -137,14 +162,40 @@ struct ContentView: View {
         }
     }
 
-    private func sidebarItem(_ screen: SidebarScreen) -> some View {
-        Label(screen.title, systemImage: screen.systemImage)
+    private func sidebarItem(_ screen: SidebarScreen, title: String? = nil) -> some View {
+        Label(title ?? screen.defaultTitle, systemImage: screen.systemImage)
             .tag(screen)
+    }
+
+    private func handleSidebarSelection(_ screen: SidebarScreen?) {
+        guard let screen else { return }
+        selectedScreen = screen
+
+        if case .whatsAppWebAccount(let accountId) = screen {
+            appModel.selectedWhatsAppWebAccountId = accountId
+        }
+    }
+
+    @discardableResult
+    private func syncSelectedWhatsAppWebAccount(with accountId: UUID) -> Bool {
+        if appModel.selectedWhatsAppWebAccountId != accountId {
+            appModel.selectedWhatsAppWebAccountId = accountId
+        }
+        return true
+    }
+
+    private var selectedScreenTitle: String {
+        switch selectedScreen {
+        case .whatsAppWebAccount(let accountId):
+            return appModel.whatsAppWebAccounts.first(where: { $0.id == accountId })?.name ?? selectedScreen.defaultTitle
+        default:
+            return selectedScreen.defaultTitle
+        }
     }
 
     private var headerBar: some View {
         HStack(spacing: 10) {
-            Text(selectedScreen.title)
+            Text(selectedScreenTitle)
                 .font(.title3.weight(.semibold))
 
             Spacer()

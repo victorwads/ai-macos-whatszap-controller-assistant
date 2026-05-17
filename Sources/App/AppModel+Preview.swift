@@ -105,5 +105,14 @@ extension AppModel {
         mcpServerHost = "localhost"
         mcpServerPort = 8080
         mcpServerPortText = "8080"
+        whatsAppWebAccounts = [
+            WhatsAppWebAccount(
+                id: UUID(uuidString: "11111111-1111-1111-1111-111111111111") ?? UUID(),
+                name: "Personal",
+                profileIdentifier: UUID(uuidString: "22222222-2222-2222-2222-222222222222") ?? UUID(),
+                createdAt: Date().addingTimeInterval(-1200)
+            )
+        ]
+        selectedWhatsAppWebAccountId = whatsAppWebAccounts.first?.id
     }
 }
