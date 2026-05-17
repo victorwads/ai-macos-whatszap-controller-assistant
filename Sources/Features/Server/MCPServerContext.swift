@@ -81,34 +81,49 @@ extension MCPServerContext {
     }
 
     func conversationJSONValue(_ conversation: ConversationSummary) -> JSONValue {
-        .object([
+        var payload: [String: JSONValue] = [
             "id": .string(conversation.id),
             "name": .string(conversation.name),
             "unreadCount": .number(Double(conversation.unreadCount)),
-            "lastMessagePreview": conversation.lastMessagePreview.map(JSONValue.string) ?? .null,
-            "lastMessageAtText": conversation.lastMessageAtText.map(JSONValue.string) ?? .null,
             "lastMessageDirection": .string(conversation.lastMessageDirection.mcpValue),
             "lastMessageStatus": .string(conversation.lastMessageStatus.rawValue),
             "isTyping": .bool(conversation.isTyping)
-        ])
+        ]
+
+        if let lastMessagePreview = conversation.lastMessagePreview {
+            payload["lastMessagePreview"] = .string(lastMessagePreview)
+        }
+        if let lastMessageAtText = conversation.lastMessageAtText {
+            payload["lastMessageAtText"] = .string(lastMessageAtText)
+        }
+
+        return .object(payload)
     }
 
     func messageJSONValue(_ message: Message) -> JSONValue {
-        .object([
+        var payload: [String: JSONValue] = [
             "id": .string(message.id),
-            "chatId": .string(message.chatId),
             "direction": .string(message.direction.mcpValue),
             "kind": .string(message.kind.rawValue),
-            "text": message.text.map(JSONValue.string) ?? .null,
-            "durationSeconds": message.durationSeconds.map(JSONValue.number) ?? .null,
-            "timestamp": .from(date: message.timestamp),
             "status": .string(message.status.rawValue),
             "rawAccessibilityText": .string(message.rawAccessibilityText),
-            "whatsappTimestampText": message.whatsappTimestampText.map(JSONValue.string) ?? .null,
-            "ingestedAt": .from(date: message.ingestedAt),
-            "handledAt": .from(date: message.handledAt),
             "isHandled": .bool(message.isHandled)
-        ])
+        ]
+
+        if let text = message.text {
+            payload["text"] = .string(text)
+        }
+        if let durationSeconds = message.durationSeconds {
+            payload["durationSeconds"] = .number(durationSeconds)
+        }
+        if let timestamp = message.timestamp {
+            payload["timestamp"] = .from(date: timestamp)
+        }
+        if let whatsappTimestampText = message.whatsappTimestampText {
+            payload["whatsappTimestampText"] = .string(whatsappTimestampText)
+        }
+
+        return .object(payload)
     }
 
     func chatMessagesEventJSONValue(chat: ConversationSummary, messages: [Message]) -> JSONValue {

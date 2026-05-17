@@ -37,7 +37,7 @@ struct ListRecentMessagesTool: MCPToolHandler {
 
         let chatState = await MainActor.run { context.memoryStore.chatState(for: chatId) }
         guard let chatState else {
-            return .success(.object(["chat": .null, "messages": .array([])]))
+            return .success(.object(["messages": .array([])]))
         }
 
         _ = await MainActor.run { context.memoryStore.consumeUnreadMessages(chatId: chatId) }
