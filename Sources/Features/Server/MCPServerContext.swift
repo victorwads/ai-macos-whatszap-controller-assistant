@@ -161,8 +161,7 @@ extension MCPServerContext {
             "id": .string(entry.id.uuidString),
             "chatId": .string(entry.chatId),
             "chatName": .string(entry.chatName),
-            "nickname": .string(entry.nickname),
-            "createdAt": .from(date: entry.createdAt)
+            "nickname": .string(entry.nickname)
         ])
     }
 
