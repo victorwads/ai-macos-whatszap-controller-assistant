@@ -39,6 +39,52 @@ actor NicknamesRepository {
         return all.sorted { $0.createdAt > $1.createdAt }
     }
 
+    func list(chatId: String? = nil, nicknameQuery: String?) -> [NicknameEntry] {
+        let all = loadAll()
+
+        let trimmedChatId = (chatId ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedChatId.isEmpty {
+            return all
+                .filter { $0.chatId == trimmedChatId }
+                .sorted { $0.createdAt > $1.createdAt }
+        }
+
+        let trimmedQuery = (nicknameQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else {
+            return all.sorted { $0.createdAt > $1.createdAt }
+        }
+
+        let normalizedQuery = normalizedNicknameSearchText(trimmedQuery)
+
+        let exactChatIds = Set(
+            all
+                .filter { normalizedNicknameSearchText($0.nickname) == normalizedQuery }
+                .map(\.chatId)
+        )
+        if !exactChatIds.isEmpty {
+            return all
+                .filter { exactChatIds.contains($0.chatId) }
+                .sorted { $0.createdAt > $1.createdAt }
+        }
+
+        let matchingChatIds = Set(
+            all
+                .filter {
+                    normalizedNicknameSearchText($0.nickname).contains(normalizedQuery)
+                        || normalizedNicknameSearchText($0.chatName).contains(normalizedQuery)
+                        || normalizedNicknameSearchText($0.chatId).contains(normalizedQuery)
+                }
+                .map(\.chatId)
+        )
+        guard !matchingChatIds.isEmpty else {
+            return []
+        }
+
+        return all
+            .filter { matchingChatIds.contains($0.chatId) }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     func save(chatId: String?, chatName: String?, nickname: String?) throws -> SaveResult {
         let trimmedChatId = (chatId ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedChatId.isEmpty {
@@ -100,5 +146,11 @@ actor NicknamesRepository {
         }
         defaults.set(data, forKey: storageKey)
         NotificationCenter.default.post(name: .nicknamesRepositoryDidChange, object: nil)
+    }
+
+    private func normalizedNicknameSearchText(_ value: String) -> String {
+        value
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

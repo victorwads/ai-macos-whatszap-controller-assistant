@@ -87,7 +87,7 @@ extension MCPServerContext {
             "unreadCount": .number(Double(conversation.unreadCount)),
             "lastMessagePreview": conversation.lastMessagePreview.map(JSONValue.string) ?? .null,
             "lastMessageAtText": conversation.lastMessageAtText.map(JSONValue.string) ?? .null,
-            "lastMessageDirection": .string(conversation.lastMessageDirection.rawValue),
+            "lastMessageDirection": .string(conversation.lastMessageDirection.mcpValue),
             "lastMessageStatus": .string(conversation.lastMessageStatus.rawValue),
             "isTyping": .bool(conversation.isTyping)
         ])
@@ -97,7 +97,7 @@ extension MCPServerContext {
         .object([
             "id": .string(message.id),
             "chatId": .string(message.chatId),
-            "direction": .string(message.direction.rawValue),
+            "direction": .string(message.direction.mcpValue),
             "kind": .string(message.kind.rawValue),
             "text": message.text.map(JSONValue.string) ?? .null,
             "durationSeconds": message.durationSeconds.map(JSONValue.number) ?? .null,
@@ -184,6 +184,19 @@ extension MCPServerContext {
                 return Date()
             }()
             return EventEntry(timestamp: timestamp, description: desc, source: source, author: author)
+        }
+    }
+}
+
+private extension MessageDirection {
+    var mcpValue: String {
+        switch self {
+        case .outgoing:
+            return "sent"
+        case .incoming:
+            return "received"
+        case .unknown:
+            return "unknown"
         }
     }
 }
