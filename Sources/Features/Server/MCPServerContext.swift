@@ -121,12 +121,9 @@ extension MCPServerContext {
 
     func memoryEntryJSONValue(_ entry: MemoryEntry) -> JSONValue {
         .object([
-            "id": .string(entry.id.uuidString),
             "key": .string(entry.key),
             "content": .string(entry.content),
-            "tags": .array(entry.tags.map(JSONValue.string)),
-            "createdAt": .from(date: entry.createdAt),
-            "updatedAt": .from(date: entry.updatedAt)
+            "tags": .array(entry.tags.map(JSONValue.string))
         ])
     }
 

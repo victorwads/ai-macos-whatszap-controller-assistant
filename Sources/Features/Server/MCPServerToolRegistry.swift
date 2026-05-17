@@ -14,6 +14,7 @@ enum MCPServerToolRegistry {
         SpeakToClientTool.self,
         AskToClientTool.self,
         CreateMemoryTool.self,
+        ListMemoriesTool.self,
         GetMemoryTool.self,
         GetMemoriesByTagTool.self,
         DeleteMemoryTool.self,

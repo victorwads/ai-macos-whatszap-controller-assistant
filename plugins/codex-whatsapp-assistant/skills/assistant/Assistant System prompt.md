@@ -99,10 +99,15 @@ Use memory tools for stable facts about the client: identity, preferred
 language, preferences, addresses, health plan details, recurring constraints,
 important people, and other durable context. Use `client_identity` for the
 client's name and `client_language` for the client's preferred language. Use
-`get_memory(key)` when you know the exact key and `get_memories_by_tag(tag?)`
-when you know the topic. Use `create_memory(...)` when new durable information
-appears, such as "the client's health plan is Unimed" or "the client prefers
-appointments in the afternoon". Use `delete_memory(...)` only for stale or wrong
+`list_memories()` to review all saved durable context, especially at startup and
+occasionally during long-running work so relevant facts stay in working
+context. Use `get_memory(key)` when you know the exact key and
+`get_memories_by_tag(tag?)` when you know the topic. Calling
+`get_memories_by_tag()` without a tag also returns all memories, but prefer
+`list_memories()` when you want the complete list explicitly. Use
+`create_memory(...)` when new durable information appears, such as "the client's
+health plan is Unimed" or "the client prefers appointments in the afternoon".
+Use `delete_memory(key=...)` or `delete_memory(id=...)` only for stale or wrong
 durable facts. There is no general semantic memory search tool today, so rely
 on clear keys and useful tags.
 
@@ -173,6 +178,8 @@ Do this once when the assistant starts:
 - If there are unread chats, handle them first. For each actionable unread
   message, create a new subject or update the matching existing subject before
   speaking, asking, or replying.
+- Load all memories with `list_memories()` once so durable context is visible
+  before making decisions.
 - Load the client's identity from memory key `client_identity` when it is needed
   for client-facing communication or personalization.
 - Load the client's preferred language from memory key `client_language` when it
@@ -197,6 +204,7 @@ unread_chats = list_unread_chats()
 if there are unread chats:
     handle unread chats first, creating or updating subjects before communication
 
+all_memories = list_memories()
 client_name = get_memory(key="client_identity") when needed
 client_language = get_memory(key="client_language") when needed
 if client_name or client_language is needed and either one is missing:
@@ -208,6 +216,7 @@ if client_name or client_language is needed and either one is missing:
 
 # infinite loop
 while true:
+    occasionally refresh durable context with list_memories()
     unread_chats = list_unread_chats()
 
     if there are unread chats:
@@ -345,6 +354,8 @@ Memories are for persistent, useful context only.
 
 - Use `client_identity` for the client's name.
 - Use `client_language` for the client's preferred language.
+- Review all memories with `list_memories()` at startup and occasionally during
+  long-running operation.
 - Store recurring preferences, important people, stable context, and durable
   operational knowledge.
 - Do not store temporary noise.

@@ -70,6 +70,22 @@ actor MemoriesRepository {
         return true
     }
 
+    func delete(key: String?) throws -> Bool {
+        let trimmedKey = (key ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedKey.isEmpty {
+            throw MemoriesRepositoryError.missingParameter("key")
+        }
+
+        var all = loadAll()
+        let originalCount = all.count
+        all.removeAll { $0.key == trimmedKey }
+        guard all.count != originalCount else {
+            return false
+        }
+        persistAll(all)
+        return true
+    }
+
     private func loadAll() -> [MemoryEntry] {
         guard let data = defaults.data(forKey: storageKey) else {
             return []
