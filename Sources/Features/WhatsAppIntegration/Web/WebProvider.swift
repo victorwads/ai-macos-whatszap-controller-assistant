@@ -63,6 +63,18 @@ private struct WebParser: WhatsAppConversationParser {
             let normalizedText = captured.text.trimmingCharacters(in: .whitespacesAndNewlines)
             let ts = captured.timestampText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let id = "\(chatId)|\(captured.direction.rawValue)|text|\(normalizedText)|\(ts)"
+
+            let status: MessageStatus = {
+                switch captured.statusTestId {
+                case "msg-check":
+                    return .sent
+                case "msg-dblcheck":
+                    return .delivered
+                default:
+                    return .unknown
+                }
+            }()
+
             return Message(
                 id: id,
                 chatId: chatId,
@@ -73,7 +85,7 @@ private struct WebParser: WhatsAppConversationParser {
                 text: captured.text,
                 durationSeconds: nil,
                 timestamp: nil,
-                status: .unknown,
+                status: status,
                 rawAccessibilityText: captured.text,
                 whatsappTimestampText: captured.timestampText
             )
@@ -97,16 +109,30 @@ private struct WebInteractor: WhatsAppConversationInteractor {
         let webView = sessionStore.webView(for: account)
         let targetKey = WhatsAppParserSupport.chatNameComparisonKey(conversation.name)
 
-        for _ in 1...3 {
+        var lastSnapshot: WhatsAppWebPageSnapshot?
+
+        for attempt in 1...3 {
             try await bridge.openChatByTitle(from: webView, title: conversation.name)
-            try await Task.sleep(for: .milliseconds(300))
-            let snapshot = try await bridge.captureSnapshot(from: webView)
-            let currentKey = WhatsAppParserSupport.chatNameComparisonKey(snapshot.selectedChatTitle)
-            if snapshot.flow == .chatSelected, currentKey == targetKey {
-                return
+            // WA Web can take a moment to swap the conversation pane and update the header.
+            // Poll the header for up to ~2s before retrying the click.
+            let start = Date()
+            while Date().timeIntervalSince(start) < 2.0 {
+                let snapshot = try await bridge.captureSnapshot(from: webView)
+                lastSnapshot = snapshot
+                let currentKey = WhatsAppParserSupport.chatNameComparisonKey(snapshot.selectedChatTitle)
+                if snapshot.flow == .chatSelected, currentKey == targetKey {
+                    return
+                }
+                try await Task.sleep(for: .milliseconds(150))
             }
+
+            _ = attempt
         }
 
-        throw WhatsAppWebBridgeError.elementNotFound("WebInteractor.openConversation(title='\(conversation.name)') could not confirm chat selection after retries.")
+        let lastFlow = lastSnapshot?.flow.rawValue ?? "nil"
+        let lastTitle = lastSnapshot?.selectedChatTitle ?? "nil"
+        throw WhatsAppWebBridgeError.elementNotFound(
+            "WebInteractor.openConversation(title='\(conversation.name)') could not confirm chat selection after retries. lastFlow=\(lastFlow) lastTitle=\(lastTitle)"
+        )
     }
 }

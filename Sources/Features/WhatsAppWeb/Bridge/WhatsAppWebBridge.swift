@@ -122,10 +122,12 @@ final class WhatsAppWebBridge {
       const pickText = (value) => typeof value === 'string' ? value.trim() : '';
       const bodyText = pickText(document.body?.innerText || '');
       const hasQrCanvas = document.querySelectorAll('canvas').length > 0;
-      const selectedChatCandidate = document.querySelector('[aria-selected="true"]');
+      const headerTitleNode = document.querySelector('[data-testid="conversation-info-header-chat-title"]') ||
+        document.querySelector('[data-testid="conversation-info-header"] [title]') ||
+        null;
       const selectedChatTitle =
-        pickText(selectedChatCandidate?.getAttribute('title')) ||
-        pickText(selectedChatCandidate?.querySelector('[title]')?.getAttribute('title')) ||
+        pickText(headerTitleNode?.getAttribute('title')) ||
+        pickText(headerTitleNode?.textContent || '') ||
         null;
       const composeCandidate =
         document.querySelector('[contenteditable="true"][data-tab]') ||
@@ -134,18 +136,19 @@ final class WhatsAppWebBridge {
         pickText(composeCandidate?.getAttribute('data-lexical-editor')) ? 'lexical-editor' :
         (pickText(composeCandidate?.getAttribute('aria-label')) || null);
       const unreadBadgeCount = document.querySelectorAll('[aria-label*="unread"], [data-testid*="icon-unread"], [data-testid="icon-unread-count"]').length;
-      const pane = document.querySelector('#pane-side') || document;
-      const chatRowCount = pane.querySelectorAll('div[role="row"], div[role="listitem"]').length;
+      const chatList = document.querySelector('[data-testid="chat-list"]');
+      const chatRowCount = chatList?.querySelectorAll('[data-testid^="list-item-"]').length || 0;
       const bodyTextSample = pickText(document.body?.innerText || '').slice(0, 500);
 
       const isLoginQr = hasQrCanvas && (bodyText.includes('Scan to log in') || bodyText.includes('Scan the QR code') || bodyText.includes('Scan to log in'));
       const isDownloading = bodyText.includes('mensagens estão sendo baixadas') || bodyText.includes('messages are being downloaded');
-      const isChatList = bodyText.includes('Não lidas') || bodyText.includes('Unread') || bodyText.includes('Tudo');
+      const isChatList = !!document.querySelector('[data-testid="chat-list"]');
+      const hasConversationPanel = !!document.querySelector('[data-testid="conversation-panel-wrapper"]');
 
       let flow = 'unknown';
       if (isLoginQr) flow = 'loginQr';
       else if (isDownloading) flow = 'downloading';
-      else if (selectedChatTitle) flow = 'chatSelected';
+      else if (hasConversationPanel && selectedChatTitle) flow = 'chatSelected';
       else if (isChatList) flow = 'chatList';
 
       const payload = {
@@ -175,50 +178,57 @@ final class WhatsAppWebBridge {
 
       // Prefer the chat header title; the sidebar's aria-selected row can be stale during transitions.
       const headerTitleCandidate =
+        document.querySelector('[data-testid="conversation-info-header-chat-title"]') ||
+        document.querySelector('[data-testid="conversation-info-header"] [title]') ||
         main.querySelector('header [title]') ||
-        document.querySelector('#main header [title]') ||
         null;
 
-      const sidebarSelected = document.querySelector('[aria-selected="true"]');
+      const sidebarSelected = document.querySelector('[data-testid="chat-list"] [aria-selected="true"]');
       const selectedChatTitle =
         pickText(headerTitleCandidate?.getAttribute('title')) ||
-        pickText(sidebarSelected?.getAttribute('title')) ||
+        pickText(headerTitleCandidate?.textContent || '') ||
         pickText(sidebarSelected?.querySelector('[title]')?.getAttribute('title')) ||
+        pickText(sidebarSelected?.textContent || '') ||
         null;
 
       const isLoginQr = hasQrCanvas && (bodyText.includes('Scan to log in') || bodyText.includes('Scan the QR code'));
       const isDownloading = bodyText.includes('mensagens estão sendo baixadas') || bodyText.includes('messages are being downloaded');
-      const isChatList = bodyText.includes('Não lidas') || bodyText.includes('Unread') || bodyText.includes('Tudo');
+      const isChatList = !!document.querySelector('[data-testid="chat-list"]');
+      const hasConversationPanel = !!document.querySelector('[data-testid="conversation-panel-wrapper"]');
 
       let flow = 'unknown';
       if (isLoginQr) flow = 'loginQr';
       else if (isDownloading) flow = 'downloading';
-      else if (selectedChatTitle) flow = 'chatSelected';
+      else if (hasConversationPanel && selectedChatTitle) flow = 'chatSelected';
       else if (isChatList) flow = 'chatList';
 
       const limit = __LIMIT__;
       // IMPORTANT: message nodes must be scoped to the main conversation pane.
       // Using generic selectors like `div[role="row"]` will accidentally capture the sidebar chat list.
-      let nodes = Array.from(main.querySelectorAll('[data-testid="msg-container"]'));
-      if (nodes.length === 0) nodes = Array.from(main.querySelectorAll('div.message-in, div.message-out'));
+      const panelBody = document.querySelector('[data-testid="conversation-panel-body"]') || main;
+      const msgContainers = Array.from(panelBody.querySelectorAll('[data-testid="msg-container"]'));
+      const tail = msgContainers.slice(Math.max(0, msgContainers.length - limit));
 
-      const tail = nodes.slice(Math.max(0, nodes.length - limit));
-      const messages = tail.map((node) => {
-        const rawText = pickText(node?.innerText || '');
+      const messages = tail.map((container) => {
+        const root = container.closest('.message-in, .message-out') || container;
+        const selectable = container.querySelector('[data-testid="selectable-text"]');
+        const rawText = pickText(selectable?.textContent || container.textContent || '');
         const text = rawText.replace(/\\s+/g, ' ').trim();
+
         let direction = 'unknown';
-        const cls = node?.classList;
+        const cls = root?.classList;
         if (cls?.contains('message-in')) direction = 'incoming';
         if (cls?.contains('message-out')) direction = 'outgoing';
         if (direction === 'unknown') {
-          if (node.querySelector('[data-testid="tail-in"]')) direction = 'incoming';
-          if (node.querySelector('[data-testid="tail-out"]')) direction = 'outgoing';
+          if (container.querySelector('[data-testid="tail-in"]')) direction = 'incoming';
+          if (container.querySelector('[data-testid="tail-out"]')) direction = 'outgoing';
         }
 
         const meta =
-          node.querySelector('[data-testid*="msg-meta"]') ||
-          node.querySelector('span[aria-label][role="img"]') ||
-          node.querySelector('span[aria-label]') ||
+          root.querySelector('[data-testid="msg-meta"]') ||
+          container.querySelector('[data-testid="msg-meta"]') ||
+          root.querySelector('span[aria-label][role="img"]') ||
+          root.querySelector('span[aria-label]') ||
           null;
         const timestampText =
           pickText(meta?.getAttribute('aria-label')) ||
@@ -226,16 +236,25 @@ final class WhatsAppWebBridge {
           null;
 
         // Group messages often expose the sender as a clickable span with a title attribute.
-        const authorCandidate =
-          node.querySelector('span[dir="auto"][title]') ||
-          node.querySelector('span[role="button"][title]') ||
-          node.querySelector('[data-testid="author"] [title]') ||
+        const authorNode =
+          root.querySelector('[data-testid="author"]') ||
+          container.querySelector('[data-testid="author"]') ||
           null;
-        const authorName =
-          pickText(authorCandidate?.getAttribute('title')) ||
-          null;
+        const authorName = pickText(authorNode?.getAttribute('title')) || pickText(authorNode?.textContent || '') || null;
 
-        return { direction, authorName, text, timestampText };
+        // Best-effort status from check icons in msg-meta.
+        let statusTestId = null;
+        const statusNode =
+          root.querySelector('[data-testid^="msg-"][data-icon]') ||
+          root.querySelector('[data-testid^="msg-"]') ||
+          null;
+        if (statusNode) {
+          const t = statusNode.getAttribute('data-testid') || '';
+          // Observed: msg-dblcheck (delivered/read), msg-check (sent)
+          statusTestId = t;
+        }
+
+        return { direction, authorName, text, timestampText, statusTestId };
       }).filter((m) => m.text.length > 0);
 
       return JSON.stringify({ flow, selectedChatTitle, messages });
@@ -246,11 +265,10 @@ final class WhatsAppWebBridge {
     (() => {
       const pickText = (value) => typeof value === 'string' ? value.trim() : '';
       const limit = __LIMIT__;
-      const pane = document.querySelector('#pane-side') || document;
+      const chatList = document.querySelector('[data-testid="chat-list"]');
+      const pane = chatList || document.querySelector('#pane-side') || document;
 
-      // WhatsApp Web uses a virtualized list. In practice, rows are usually role="row"
-      // and the chat title is exposed in a descendant with a title attr or aria-label.
-      const rows = Array.from(pane.querySelectorAll('div[role="row"], div[role="listitem"]'));
+      const rows = Array.from(pane.querySelectorAll('[data-testid^="list-item-"], div[role="row"], div[role="listitem"]'));
       const deny = new Set(['WhatsApp', 'Tudo', 'Não lidas', 'Grupos', 'Unread', 'Groups', 'All']);
 
       const unique = [];
@@ -280,18 +298,24 @@ final class WhatsAppWebBridge {
       };
 
       for (const row of rows) {
-        const titled = row.querySelector('[title]');
-        const titleFromAttr = pickText(titled?.getAttribute('title'));
+        const titleNode =
+          row.querySelector('[data-testid="cell-frame-title"] [title]') ||
+          row.querySelector('[title]') ||
+          null;
+        const titleFromAttr = pickText(titleNode?.getAttribute('title')) || pickText(titleNode?.textContent || '');
         const label = pickText(row.getAttribute('aria-label')) || pickText(row.textContent || '');
         const lines = label.split('\\n').map((l) => pickText(l)).filter((l) => l.length > 0);
         const title = titleFromAttr || lines[0] || '';
 
         // Best-effort preview and time from line heuristics.
-        let timeText = null;
+        const timeNode = row.querySelector('[data-testid="cell-frame-primary-detail"]');
+        let timeText = pickText(timeNode?.textContent || '') || null;
+        if (!timeText) timeText = null;
         for (const l of lines.slice(0, 6)) {
           if (looksLikeTime(l)) { timeText = l; break; }
         }
-        const preview = lines.find((l, idx) => idx > 0 && !looksLikeTime(l)) || null;
+        const previewNode = row.querySelector('[data-testid="cell-frame-secondary"] [title]') || row.querySelector('[data-testid="cell-frame-secondary"]');
+        const preview = pickText(previewNode?.getAttribute('title')) || pickText(previewNode?.textContent || '') || (lines.find((l, idx) => idx > 0 && !looksLikeTime(l)) || null);
 
         // Best-effort unread badge count.
         const unreadBadge =
@@ -329,13 +353,15 @@ final class WhatsAppWebBridge {
       const pickText = (value) => typeof value === 'string' ? value.trim() : '';
       const norm = (value) => pickText(value).toLowerCase();
       const target = "__TITLE__";
-      const pane = document.querySelector('#pane-side') || document;
-      const rows = Array.from(pane.querySelectorAll('div[role="row"], div[role="listitem"]'));
+      const pane = document.querySelector('[data-testid="chat-list"]') || document.querySelector('#pane-side') || document;
+      const rows = Array.from(pane.querySelectorAll('[data-testid^="list-item-"], div[role="row"], div[role="listitem"]'));
       const targetKey = norm(target);
 
       const sampleTitles = [];
       for (const row of rows.slice(0, 20)) {
-        const t = row.querySelector('[title]')?.getAttribute('title') || pickText((row.textContent || '').split('\\n')[0]);
+        const t = row.querySelector('[data-testid="cell-frame-title"] [title]')?.getAttribute('title') ||
+          row.querySelector('[title]')?.getAttribute('title') ||
+          pickText((row.textContent || '').split('\\n')[0]);
         const v = pickText(t);
         if (v) sampleTitles.push(v);
       }
@@ -343,7 +369,7 @@ final class WhatsAppWebBridge {
       const findRow = () => {
         // Prefer matching a [title] descendant.
         for (const row of rows) {
-          const t = row.querySelector('[title]')?.getAttribute('title');
+          const t = row.querySelector('[data-testid="cell-frame-title"] [title]')?.getAttribute('title') || row.querySelector('[title]')?.getAttribute('title');
           if (norm(t) === targetKey) return row;
         }
         // Fallback to textContent comparison.
@@ -360,6 +386,18 @@ final class WhatsAppWebBridge {
         return null;
       };
 
+      const triggerClick = (node) => {
+        if (!node) return false;
+        try { node.scrollIntoView({ block: 'center', inline: 'center' }); } catch {}
+        try { node.focus?.(); } catch {}
+        const eventInit = { bubbles: true, cancelable: true, view: window };
+        try { node.dispatchEvent(new MouseEvent('mousedown', eventInit)); } catch {}
+        try { node.dispatchEvent(new MouseEvent('mouseup', eventInit)); } catch {}
+        try { node.dispatchEvent(new MouseEvent('click', eventInit)); } catch {}
+        try { node.click?.(); } catch {}
+        return true;
+      };
+
       let clickable = findRow();
       if (!clickable) {
         const candidates = Array.from(pane.querySelectorAll('[title]'));
@@ -369,11 +407,25 @@ final class WhatsAppWebBridge {
 
       if (!clickable) return JSON.stringify({ result: "not_found", target, rowCount: rows.length, sampleTitles });
 
-      try {
-        clickable.scrollIntoView({ block: 'center' });
-      } catch {}
-      clickable.click();
-      return JSON.stringify({ result: "ok", target, rowCount: rows.length, sampleTitles });
+      const directTitle = clickable.querySelector('[data-testid="cell-frame-title"] [title]') || clickable.querySelector('[title]') || null;
+      const focusTarget =
+        clickable.querySelector('[role="gridcell"] div[tabindex="0"][aria-selected]') ||
+        clickable.querySelector('[role="gridcell"] [tabindex="0"][aria-selected]') ||
+        clickable.querySelector('[role="gridcell"] [tabindex="0"]') ||
+        clickable.querySelector('[role="gridcell"]') ||
+        clickable;
+
+      triggerClick(directTitle);
+      triggerClick(focusTarget);
+
+      return JSON.stringify({
+        result: "ok",
+        target,
+        rowCount: rows.length,
+        sampleTitles,
+        clickedTitle: pickText(directTitle?.getAttribute('title')) || pickText(directTitle?.textContent || '') || null,
+        clickedTag: focusTarget?.tagName || null
+      });
     })();
     """
 

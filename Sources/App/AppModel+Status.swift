@@ -65,7 +65,11 @@ extension AppModel {
     }
 
     func appendLog(_ message: String, level: LogLevel = .info) {
-        logs.append(LogEntry(level: level, message: message))
+        let entry = LogEntry(level: level, message: message)
+        logs.append(entry)
+        Task {
+            await IntegrationLogTailWriter.shared.append(entry: entry)
+        }
     }
 
     private func startPermissionMonitor() {

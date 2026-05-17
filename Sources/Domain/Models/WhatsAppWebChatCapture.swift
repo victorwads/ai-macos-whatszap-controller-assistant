@@ -6,10 +6,11 @@ struct WhatsAppWebChatCapture: Codable, Equatable {
         let authorName: String?
         let text: String
         let timestampText: String?
+        /// Raw WA Web status identifier (best-effort), e.g. "msg-check" / "msg-dblcheck".
+        let statusTestId: String?
     }
 
     let flow: WhatsAppWebFlow
     let selectedChatTitle: String?
     let messages: [CapturedMessage]
 }
-
