@@ -1,112 +1,166 @@
 # Project History
 
-This document tells the story of how this project came to be and how its shape changed over time.
+This is the long-form story of how this project happened — and why it ended up being more personal (and more emotional) than “I wanted to build a tool”.
 
-## 1. The original need
+It started as a very human problem: life was asking for care, but work kept eating every available hour. And when you’re tired, stressed, or simply drowning in daily admin, the things that matter most are often the first things you postpone.
 
-The root problem was not technical at first. Life was getting crowded by work, health issues, and everyday admin, and the things that mattered most kept getting pushed aside.
+## 1. When “I’ll do it later” becomes a pattern
 
-Medical logistics were a recurring pain point. Calling health insurance, finding a doctor, and scheduling an appointment could easily eat up hours of the day. Phone numbers were stale, web listings were incomplete, and every step required manual follow-up across calls and WhatsApp messages.
+One of the recurring pain points was medical logistics.
 
-## 2. Hiring a human assistant
+If you’ve never had to find a new doctor through health insurance, it can sound like laziness. But if you have… you know it’s a battle. You go to the insurer website, you copy phone numbers, you start calling — and then you hit reality:
 
-At one point, I had enough money to pay a friend to help for about an hour a day. The work was not glamorous, but it was valuable: organizing email and calendar, reminding me of appointments, and nudging me to act when something important was coming up.
+- numbers that don’t work anymore,
+- doctors who moved, stopped answering, or never offered what the page promised,
+- “we don’t do that here”,
+- “the next slot is in two months”,
+- and the endless follow-ups, spread across calls and WhatsApp messages.
 
-That arrangement helped, but it also showed the limits of a small human support loop. The assistant could not realistically keep up with everything, and eventually I no longer had the budget to maintain that setup.
+It’s not rare to lose four, five, six hours in a single day doing that. And the worst part is: sometimes you don’t “give up” because you don’t care — you give up because you’re already exhausted, and you just can’t.
 
-## 3. Looking for software assistance
+## 2. The human assistant phase (and the relief of being helped)
 
-After that, I started looking for a way to make the assistant behavior more durable and less dependent on constant human effort.
+At one point, when I was making good money, I hired a friend to help me for about an hour (maybe an hour and a half) per day.
 
-I was already using Codex a lot, and at the time it began to support Gmail and Calendar integrations. I connected it to my workflow and asked it to help me with email and scheduling tasks.
+I remember thinking, very explicitly: “this is not abuse.” Which sounds dramatic, but it’s true — my brain was wired to feel guilty for asking for help. I paid what I could. I knew he deserved more. But the agreement was honest and limited: a small daily slot, focused on the stuff that was silently ruining my life.
 
-That worked reasonably well for simple things, like reading messages and categorizing them, but it was expensive. Even small tasks could consume a big chunk of usage.
+The work was simple, but it mattered:
 
-## 4. The WhatsApp bottleneck
+- organizing emails,
+- organizing calendar,
+- reminding me of appointments,
+- and, most importantly, calling me before important events.
 
-WhatsApp became the next obvious target.
+That last one is hard to explain until you live it. He would call me one hour before an appointment and say, with the firmness I didn’t have with myself: “stop what you’re doing. Go now. Fix this.” That saved things.
 
-The reasoning was simple: if the assistant could handle the WhatsApp side locally, it would reduce the amount of model time spent on repetitive reading, categorization, and reply preparation.
+But even that had obvious limits. He had his own life. He couldn’t be my external brain forever — and he couldn’t realistically have access to the place where most of my chaos lived: WhatsApp.
 
-At first the idea was to let the model interact directly with the WhatsApp Desktop app through Accessibility. That worked, but it was expensive in tokens and cognitively heavy for the model, because it had to understand the native app layout and keep track of the interface on its own.
+Then the hard part happened: I ran out of money. I lost the human assistant. And suddenly I was alone again with every pending thread.
 
-That was the point where the project stopped being “a bot that sends messages” and became more like “a local assistant runtime that exposes WhatsApp actions through a cleaner API.”
+## 3. Software help: Codex felt like magic… and then it felt expensive
 
-## 5. The MCP server phase
+Around that time I was using Codex a lot. I was unemployed, trying to study, learn, build things — and the idea of an “assistant” stopped feeling like sci‑fi and started feeling… plausible.
 
-The first concrete implementation was an MCP server for WhatsApp.
+I connected Codex to Gmail and Calendar and tried to use it as a small, practical helper:
 
-The idea was to give the model a smaller set of tools:
+- read emails,
+- summarize,
+- categorize,
+- suggest actions.
 
-- list chats
-- select a chat
-- read messages
-- send messages
+It worked. It genuinely worked. And that almost made it worse — because it wasn’t sustainable. Small tasks could burn through a big chunk of usage, sometimes a third of the “5-hour” window, sometimes half. I kept thinking: “this is incredible… but I can’t afford it as a lifestyle.”
 
-That reduced the amount of work the model had to do and made the workflow more structured.
+And then the obvious thought showed up:
 
-This is where the project began as `AssistantMCPServer`.
+“Okay… but what if it could do WhatsApp too?”
 
-## 6. The cost problem and the LM Studio turn
+## 4. WhatsApp is not “just chat” — it’s where life happens
 
-There was another major turning point.
+WhatsApp isn’t only messages. For me it’s health insurance, doctors, family, work, the place where problems appear first.
 
-The cloud-based setup still cost too much for sustained use. A simple model loop could spend a surprising amount of quota, and that made the whole system fragile for day-to-day life.
+My first attempt was as direct as possible: let the model drive WhatsApp Desktop on macOS via Accessibility tooling.
 
-The reminder from my partner was basically: the intelligence layer itself could be local and cheap if I moved the runtime to my own machine.
+It worked — but it was heavy. Really heavy. The model had to understand UI. Understand windows. Understand where to click. Spend tokens interpreting a layout that changes. It wasn’t “working”, it was “looking at a screen and guessing”.
 
-That led me back to LM Studio.
+At some point I had a very clear thought:
 
-I had not used it seriously for quite a while, but local models had changed a lot. On my M3 Max machine, local reasoning had become fast enough to be useful in practice. I tested it with the WhatsApp workflow and it worked much better than I expected.
+I don’t want the model to watch my screen. I want it to work.
 
-That is when the project became a local assistant runtime instead of a cloud-dependent interaction.
+So I started building an MCP tool surface that turned “WhatsApp” into a small, stable set of actions: list chats, read recent messages, send messages, wait for events. That was the real beginning of this repo.
 
-## 7. Memory and sensitive data
+And I still remember the feeling: in two or three days of iteration with Codex, the thing got good fast. Almost too fast.
 
-Once the assistant could work locally, it needed memory.
+And then it got too expensive fast too.
 
-It also needed a safer way to handle private information. Some things, like CPFs, insurance numbers, and contact details, are not general memory and should not be exposed broadly.
+## 5. The sentence that changed everything: “it could be free”
 
-That is what led to the `Memory` and `Sensitive Data` pieces: a split between durable knowledge, operational context, and protected personal records.
+My partner said something that was so obvious that my brain almost ruined it with my (very annoying) habit of correcting people.
 
-## 8. Moving from Desktop to WebView
+He said: “wow… this could be free, right?”
 
-The native WhatsApp Desktop integration started hitting friction.
+And my first impulse was to “correct” him — but that whole argument happened inside my head. I didn’t actually correct him. I just *almost* did, because I can be extremely literal in the worst possible moments.
 
-The more I pushed the system, the clearer it became that relying entirely on the native desktop app was too brittle for the long term. So I introduced WhatsApp Web inside the macOS app through a WebView.
+Because the truth is: the intelligence itself *is* free in the sense that it’s public. It exists. You can run models. You don’t *have* to pay a company for “AI” as a concept.
 
-That shifted the project again:
+What isn’t free is *compute*. The expensive part is paying for processing — whether that’s cloud tokens or hardware and electricity.
 
-- more control
-- fewer external dependencies
-- more predictable integration
-- less interference from the user
+And the funny part is: this is someone I love, someone who knows me well enough to handle my literal brain without asking me to change it. He understands my nuance even when I’m being annoyingly precise.
 
-At that point the macOS app was no longer just a server process. It had become an operational runtime with its own interface, its own persistence, its own tool surface, and its own integration surface.
+There was this tiny pause — the kind where you can almost hear your own thoughts — and then my brain just exploded into an “oh.”
 
-## 9. The broader assistant runtime
+Out loud, what came out of me was basically: “wait… maybe it *can* be free.”
 
-As the project evolved, it started to absorb more responsibilities:
+Because that’s what his sentence unlocked: if compute is the bottleneck, then maybe I can move the compute to my own machine.
 
-- session supervision
-- LM Studio orchestration
-- client voice interaction
-- pending-message handling
-- debug tooling
-- subjects and workflows
+It was a real Eureka moment. We were on the phone, he had to go back to work, and the conversation just… ended. But my head didn’t. I stayed there, grateful, suddenly motivated, suddenly seeing the whole project become viable in a way it hadn’t been five minutes earlier.
 
-That is why the current identity is no longer just “an MCP server.”
+And that reminded me of LM Studio.
 
-The project is becoming a local assistant runtime with WhatsApp as one of its core surfaces.
+I hadn’t used it seriously in almost a year. But I thought: “wait… what if I run this locally?”
 
-## 10. Where this goes next
+## 6. LM Studio, and the shock: local models got good
 
-The next chapters are likely to include:
+I have a powerful Mac (M3 Max), and I still had the old memory: local reasoning was slow, painful, kind of impractical.
 
-- LM Studio session supervision from inside the app
-- humanization as a separate pass from reasoning
-- remote/mobile access
-- richer observability over model events
-- better automation around tests and restart flows
+But I opened LM Studio again and it was a shock.
 
-This history will keep growing as the system grows.
+Models got better. Tool-calling got better. It wasn’t just “tokens per second” — it was the amount of real work happening inside those tokens.
+
+I connected LM Studio to the MCP tools and let it try the WhatsApp workflow.
+
+It understood. It used the tools. It didn’t fight the interface. It went straight to the point.
+
+And that’s the moment the project stopped being “a WhatsApp controller” and became “a local assistant runtime”.
+
+## 7. Memory… and then: sensitive data
+
+If it’s going to be a real assistant, it needs memory.
+
+But it also needs *the right kind* of memory — and boundaries.
+
+I didn’t want CPFs, insurance numbers, cards, and personal details living inside a generic memory blob. If something leaks into a message, if it goes to the wrong place, that’s not “oops”, that’s dangerous.
+
+So the concept of Sensitive Data became necessary: separated, auditable, and treated differently. I wanted the assistant to be useful. I didn’t want it to be irresponsible.
+
+## 8. Why Apple/macOS/Swift (and why it’s not aesthetic)
+
+This project is “macOS-first” for a reason.
+
+Apple Silicon made local compute feel normal — unified memory means that even a simpler Mac with 16GB can run a local model. It may be slower, it may need a smaller model, but it can run. On Windows, “16GB RAM and integrated graphics” usually means “no local LLM for you” unless you have a discrete GPU with enough VRAM.
+
+And there’s another reason that matters even more for a personal assistant: voice.
+
+macOS gives you strong public APIs for Text-to-Speech and Speech Recognition. And for Portuguese specifically, there was an unexpected twist: the system voice can sound more natural sometimes, but Swift’s public voices (like “Fernanda Enhanced”) can be *more reliable* with accents, cedillas, and punctuation — while the Siri voice isn’t even available through the public Swift API.
+
+For an assistant, reliability matters more than “pretty”.
+
+## 9. When WhatsApp Desktop became friction: WebView
+
+Eventually, the native WhatsApp Desktop integration started to get in the way.
+
+So I brought WhatsApp Web *inside* the app, via a WebView.
+
+That gave me:
+
+- more control,
+- fewer external dependencies,
+- less interference from the user,
+- and a more consistent integration surface.
+
+At that point, the macOS app was no longer “just a server.” It became an environment: UI, persistence, tools, logs, and the place where the assistant lives.
+
+## 10. The moment I realized it isn’t just for me
+
+After it started working, I showed it to my family. To my partner. To my mom.
+
+And I had this very practical thought: “I could host more than one assistant on my machine.”
+
+Most of the time, the model is idle. The constant cost is usually WhatsApp polling, state, logs, and operational bookkeeping. Different people receive messages at different times, so you can host multiple profiles without being saturated.
+
+For example: I could host an assistant for my partner, my mom, maybe my stepfather. If they all receive messages at the same time, things get slower — but it still works. The model is already loaded.
+
+But then the obvious operational problem appears: they’re not on my machine. They won’t open LM Studio. They won’t read logs. They won’t manage memory and subjects locally.
+
+And that is how the mobile-client idea was born: not as “a nice extra”, but as a necessity if this ever wants to become a real product.
+
+This story is not finished. It’s barely starting — and it will keep growing as the project (and my life) keeps moving.

@@ -12,6 +12,23 @@ The project is a native macOS assistant runtime with three major responsibilitie
 
 LM Studio remains the inference engine. The Swift app is the runtime, supervisor, and integration layer.
 
+## Platform rationale (macOS + Swift)
+
+This project is intentionally macOS-first.
+
+- macOS provides strong on-device voice building blocks through public APIs (Text-to-Speech and Speech Recognition).
+- Apple Silicon machines can run local LLMs via LM Studio with enough unified memory, without depending on a discrete GPU.
+- The app can stay local-first: state, tools, and integrations run on the user's machine.
+
+### Speech and Speech Recognition
+
+The runtime can speak and listen using a few approaches:
+
+- macOS system `say` command (uses the configured system voice)
+- Swift speech APIs (high quality voices available through the public API surface)
+
+There are tradeoffs. For Portuguese, some voices available via Swift APIs (for example, "Fernanda Enhanced") handle accents and punctuation well, while the system/Siri voice behavior can be inconsistent for some text shapes. The goal is to keep both paths available and pick the best experience per locale and device.
+
 ## Main runtime layers
 
 ### Swift app
@@ -108,6 +125,18 @@ The assistant can:
 - list active subjects to recover operational context after waiting or restarting
 
 This is one of the ways the runtime avoids relying only on the LM Studio chat context.
+
+## Multi-profile motivation
+
+Multi-profile support exists because the runtime can host more than one assistant on the same Mac.
+
+In practice:
+
+- the local model instance can stay loaded in memory
+- WhatsApp polling and state sync are usually the main background cost
+- different people receive messages at different times, so inference load tends not to spike constantly
+
+This enables hosting assistants for family members (for example: partner, mother) on a single machine, while exposing a UI (and future mobile UI) so those users can manage memories, subjects, and state without local access to LM Studio.
 
 ## Current tool surface
 

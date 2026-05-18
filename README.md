@@ -1,14 +1,20 @@
-# AssistantMCPServer
+# Personal Assistant App -  Server for Apple macOS
+## And soon, Android and iOS Clients
 
-Local macOS assistant runtime that combines a native SwiftUI app, Accessibility-driven control, an embedded MCP HTTP server, and LM Studio session supervision.
+Local macOS personal assistant runtime for WhatsApp, memories, and life admin. It combines a native SwiftUI app, an embedded MCP HTTP server, LM Studio session supervision, and deep macOS-native capabilities (speech, dictation, Accessibility, WebView).
 
 The project started as a local MCP server for WhatsApp Desktop.
 It now behaves more like a local assistant runtime: it owns state, tools, orchestration, and the integration surfaces that the model uses to work.
-The repo is evolving toward a `Personal Assistant Runtime` identity, with WhatsApp as the first major integration surface.
+
+Why macOS and Swift:
+
+- Apple hardware and macOS have strong on-device capabilities (Neural Engine, built-in Text-to-Speech, Speech Recognition APIs).
+- Even modest Macs can run local LLMs through LM Studio with enough RAM, without requiring a dedicated GPU.
+- This enables hosting a personal assistant locally with lower operational cost and fewer external dependencies.
 
 ## What It Is
 
-This is a native macOS assistant runtime, not just a server process. It:
+This is a native macOS app for running a personal assistant locally, not just a server process. It:
 
 - reads the WhatsApp Accessibility tree and WebView state
 - keeps local persistent state for chats, memories, subjects, nicknames, and sensitive data
@@ -16,7 +22,10 @@ This is a native macOS assistant runtime, not just a server process. It:
 - supervises LM Studio sessions and assistant lifecycle
 - provides SwiftUI screens for logs, settings, debug views, and manual control
 
-The long-form story lives in [Docs/History.md](./Docs/History.md).
+Think of it as a local personal assistant (part secretary, part operator, part best-friend energy) for WhatsApp and personal workflow, with the app acting as the runtime that keeps the assistant alive and organized.
+
+The long-form story lives in History.md ([en](./Docs/History.md) - [pt-BR](./Docs/History-ptBR.md)).
+
 The system layout lives in [Docs/Architecture.md](./Docs/Architecture.md).
 The current capability summary lives in [Docs/Features.md](./Docs/Features.md).
 
@@ -99,7 +108,7 @@ macOS grants permission to the exact app binary, so the identity may matter afte
 - [Sources/](./Sources/) - app code, runtime, tools, integrations, repositories, and UI
 - [scripts/](./scripts/) - build and maintenance scripts
 - [Docs/Backlog.md](./Docs/Backlog.md) - running list of planned work and dependencies
-- [Docs/History.md](./Docs/History.md) - narrative history of the project
+- History.md ([en](./Docs/History.md) - [pt-BR](./Docs/History-ptBR.md)) - narrative history
 - [Docs/Architecture.md](./Docs/Architecture.md) - current architecture and runtime model
 - [Docs/Features.md](./Docs/Features.md) - feature summary and current capabilities
 
